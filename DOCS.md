@@ -1,9 +1,82 @@
 # Buddy documentation
 
-- `void foo()`
+- `void zero_memory(void *p, u64 size)`
 
-	Foo is a function. Oh hey another line i sure hope it concatinates lines well. 
+	Zeros out memory. Size is in BYTES. 
+ ([source](buddy.h#30))
+- `void copy_memory(void *dest, void *source, u64 size)`
 
-- `int bar()`
+	Copies memory from source to dest. Size is in BYTES. 
+ ([source](buddy.h#30))
+- `void *alloc(Allocator *a, u64 size)`
 
-	This function is very cool Warning: hello 
+	Allocates memory using the given allocator. Returns NULL if the allocation fails. 
+ ([source](buddy.h#30))
+- `void *alloc_zero(Allocator *a, u64 size)`
+
+	Same as `alloc`, but zeros out memory as well. 
+ ([source](buddy.h#30))
+- `Allocator get_temporary_allocator()`
+
+	The temporary allocator uses predefined global memory with size TEMP_ALLOC_BUFSIZE, which is by default 4MB. 
+ ([source](buddy.h#30))
+- `void reset_temp_memory()`
+
+	Resets the temporary memory back to size 0. 
+ ([source](buddy.h#30))
+- `void *temp_alloc(u64 size)`
+
+	Allocates memory using the temporary allocator. Returns NULL if the allocation fails. 
+ ([source](buddy.h#30))
+- `void *temp_zero_alloc(u64 size)`
+
+	Same as `temp_alloc`, but zeros out memory as well. 
+ ([source](buddy.h#30))
+- `uint cstr_len(char *s)`
+
+	Returns the byte length of a NULL-terminated C string. 
+ ([source](buddy.h#30))
+- `String str_new(char *s)`
+
+	Allocates a new string using the temporary allocator. See `str_alloc` to use a custom allocator. Returns ERROR_STRING if allocation fails or s is NULL. 
+ ([source](buddy.h#30))
+- `String str_alloc(Allocator *a, String s)`
+
+	Allocates and returns a copy of the string using allocator. Returns ERROR_STRING if allocation fails or s har an error. 
+ ([source](buddy.h#30))
+- `String str_alloc_cstr(Allocator *a, char *s)`
+
+	Allocates and returns a copy of the string using allocator. Returns ERROR_STRING if allocation fails. 
+ ([source](buddy.h#30))
+- `String str_view(String s, uint start, uint end)`
+
+	Returns a string view of the original string. Returns ERROR_STRING if the range is out of bounds or the original string has an error. 
+ ([source](buddy.h#30))
+- `bool str_equal(String a, String b)`
+
+	Returns true if both strings are equal. Returns false if not or either has an error. 
+ ([source](buddy.h#30))
+- `uint str_count(String s, char c)`
+
+	Returns count of character c in string s. 
+ ([source](buddy.h#30))
+- `String str_upper(String s)`
+
+	Converts the original string s to uppercase, returns the same string for convenience. 
+ ([source](buddy.h#30))
+- `String str_lower(String s)`
+
+	Converts the original string s to lowercase, returns the same string for convenience. 
+ ([source](buddy.h#30))
+- `String str_replace_char(String s, char old, char new_c)`
+
+	Replaces all occurances of old char with new in the original string. Returns the same string for convenience. 
+ ([source](buddy.h#30))
+- `String str_replace_str(String s, String old, String new_s, Allocator a)`
+
+	Allocates and returns a new copy of s with the old substrings replaced with new. Returns ERROR_STRING if either string has an error or allocation fails. 
+ ([source](buddy.h#30))
+- `String str_reverse(String s)`
+
+	Reverses the original string. Returns same string for convenience. Returns ERROR_STRING if s has an error. 
+ ([source](buddy.h#30))

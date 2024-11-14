@@ -1,7 +1,7 @@
 all:
 	mkdir -p bin
-	gcc test/*.c -o bin/test
+	gcc test.c -o bin/test
 	./bin/test
 
 doc:
-	python autodoc.py buddy.h
+	python3 autodoc.py buddy.h

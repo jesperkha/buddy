@@ -28,6 +28,8 @@ def get_formatted(f: TextIO):
     doc = "" 
     docline = ""
     for line in f.readlines():
+        if line.startswith("// TODO") or line.startswith("// MARK"):
+            continue
         if line.startswith("#ifdef BUDDY_IMPLEMENTATION"):
             return doc
         if line.startswith("//"):
@@ -35,7 +37,8 @@ def get_formatted(f: TextIO):
         elif docline != "":
             docline = docline.replace("// ", "").replace("\n", " ") + "\n"
             stripped = line.strip('\n').strip(";")
-            docline = f"\n- `{stripped}`\n\n\t{docline}"
+            source = f"([source](buddy.h#30))"
+            docline = f"\n- `{stripped}`\n\n\t{docline} {source}"
             doc += docline
             docline = ""
     
