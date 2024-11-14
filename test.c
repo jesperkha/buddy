@@ -46,49 +46,75 @@ Test(Allocation, {
     assert(p != NULL, "Expected valid poiner");
     for (int i = 0; i < size; i++)
         assert(p[i] == 0, "Expected zeroed memory");
+
+    reset_temp_memory();
 }
 });
 
 Test(String, {
 {
     log("upper and lower case");
-    String s = str_new("Hello World!");
-    assert(str_equal(str_upper(s), str_new("HELLO WORLD!")), "Expected equal");
-    assert(str_equal(str_lower(s), str_new("hello world!")), "Expected equal");
+    String s = str_temp("Hello World!");
+    assert(str_equal(str_upper(s), str_temp("HELLO WORLD!")), "Expected equal");
+    assert(str_equal(str_lower(s), str_temp("hello world!")), "Expected equal");
 }
 {
     log("c string to String");
-    String s = str_new("Hello world!");
+    String s = str_temp("Hello world!");
     assert(s.length == 12, "Expected length 12");
 }
 {
     log("string equal");
-    assert(str_equal(str_new("Hello"), str_new("Hello")), "Expected equal");
-    assert(!str_equal(str_new("hello"), str_new("Hello")), "Expected not equal");
-    assert(!str_equal(str_new("he"), str_new("hello")), "Expected not equal");
+    assert(str_equal(str_temp("Hello"), str_temp("Hello")), "Expected equal");
+    assert(!str_equal(str_temp("hello"), str_temp("Hello")), "Expected not equal");
+    assert(!str_equal(str_temp("he"), str_temp("hello")), "Expected not equal");
 }
 {
     log("string count");
-    assert(str_count(str_new("Hello world!"), 'l') == 3, "Expected 3");
+    assert(str_count(str_temp("Hello world!"), 'l') == 3, "Expected 3");
 }
 {
     log("string replace");
-    String replaced = str_replace_char(str_new("Hello world!"), 'l', '-');
-    String expect = str_new("He--o wor-d!");
+    String replaced = str_replace_char(str_temp("Hello world!"), 'l', '-');
+    String expect = str_temp("He--o wor-d!");
     assert(str_equal(replaced, expect), "Expected equal");
     // TODO: str_replace_str()
 }
 {
     log("string reverse");
-    String reversed = str_reverse(str_new("Hello world!"));
-    String expect = str_new("!dlrow olleH");
+    String reversed = str_reverse(str_temp("Hello world!"));
+    String expect = str_temp("!dlrow olleH");
     assert(str_equal(reversed, expect), "Expected equal");
 }
 });
+
+Test(StringBuilder, {
+{
+    log("string builder append");
+    StringBuilder sb = str_builder_new(get_temporary_allocator(), 100);
+    assert(!sb.err, "Expected init success");
+    assert(str_builder_append_cstr(&sb, "Hello "), "Expected success");
+    assert(str_builder_append_cstr(&sb, "world!"), "Expected success");
+
+    String expect = str_temp("Hello world!");
+    assert(str_equal(expect, str_builder_to_string(&sb)), "Expected equal");
+}
+{
+    log("string builder truncate");
+    StringBuilder sb = str_builder_new(get_temporary_allocator(), 10);
+    assert(!sb.err, "Expected init success");
+    assert(str_builder_append_cstr(&sb, "abcde"), "Expected success");
+    assert(!str_builder_append_cstr(&sb, "fghijklmno"), "Expected fail");
+
+    String expect = str_temp("abcdefghij");
+    assert(str_equal(expect, str_builder_to_string(&sb)), "Expected equal");
+}
+})
 
 int main()
 {
     run(String);
     run(Allocation);
+    run(StringBuilder);
     return 0;
 }

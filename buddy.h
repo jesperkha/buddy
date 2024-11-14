@@ -29,14 +29,14 @@ typedef float f32;
 typedef double f64;
 typedef u64 uptr;
 
-// MARK: Common definitions
+// MARK: Common
 
 // Zeros out memory. Size is in BYTES.
 void zero_memory(void *p, u64 size);
 // Copies memory from source to dest. Size is in BYTES.
 void copy_memory(void *dest, void *source, u64 size);
 
-// MARK: Allocator definitions
+// MARK: Allocator
 
 typedef enum AllocatorMessage
 {
@@ -51,14 +51,14 @@ typedef struct Allocator
     void *data;
     u64 size;
     u64 pos;
-    void *(*proc)(struct Allocator *a, AllocatorMessage msg, u64 size, void *old_ptr);
+    void *(*proc)(struct Allocator a, AllocatorMessage msg, u64 size, void *old_ptr);
 } Allocator;
 
 // Allocates memory using the given allocator. Returns NULL if the allocation
 // fails.
-void *alloc(Allocator *a, u64 size);
+void *alloc(Allocator a, u64 size);
 // Same as `alloc`, but zeros out memory as well.
-void *alloc_zero(Allocator *a, u64 size);
+void *alloc_zero(Allocator a, u64 size);
 
 // The temporary allocator uses predefined global memory with size
 // TEMP_ALLOC_BUFSIZE, which is by default 4MB.
@@ -71,7 +71,7 @@ void *temp_alloc(u64 size);
 // Same as `temp_alloc`, but zeros out memory as well.
 void *temp_zero_alloc(u64 size);
 
-// MARK: String delcarations
+// MARK: String
 
 typedef struct String
 {
@@ -86,13 +86,13 @@ typedef struct String
 uint cstr_len(char *s);
 // Allocates a new string using the temporary allocator. See `str_alloc` to use
 // a custom allocator. Returns ERROR_STRING if allocation fails or s is NULL.
-String str_new(char *s);
+String str_temp(char *s);
 // Allocates and returns a copy of the string using allocator. Returns
 // ERROR_STRING if allocation fails or s har an error.
-String str_alloc(Allocator *a, String s);
+String str_alloc(Allocator a, String s);
 // Allocates and returns a copy of the string using allocator. Returns
 // ERROR_STRING if allocation fails.
-String str_alloc_cstr(Allocator *a, char *s);
+String str_alloc_cstr(Allocator a, char *s);
 // Returns a string view of the original string. Returns ERROR_STRING if the
 // range is out of bounds or the original string has an error.
 String str_view(String s, uint start, uint end);
@@ -117,12 +117,47 @@ String str_replace_str(String s, String old, String new_s, Allocator a);
 // ERROR_STRING if s has an error.
 String str_reverse(String s);
 
+// MARK: StringBuilder
+
+typedef struct StringBuilder
+{
+    u64 size;
+    u64 length;
+    char *mem;
+    bool err;
+} StringBuilder;
+
+#define ERROR_STRING_BUILDER ((StringBuilder){.mem = NULL, .length = 0, .err = true, .size = 0})
+
+// Returns a new allocated string builder with the given max size. Returns
+// ERROR_STRING_BUILDER if allocation fails.
+StringBuilder str_builder_new(Allocator a, u64 size);
+// Appends string to the builder. Returns true on success. If the string is too
+// long and would overflow the builders max size, the string is truncated to fit
+// within the builder, and returns false. Returns false if s has an error.
+bool str_builder_append(StringBuilder *sb, String s);
+// Same as `str_builder_append`.
+bool str_builder_append_cstr(StringBuilder *sb, char *s);
+// Returns the string builder as a string.
+String str_builder_to_string(StringBuilder *sb);
+
 #ifdef BUDDY_IMPLEMENTATION
+
+// MARK: Internal utils
+
+// Root of all evil
+#define _STRING(_s) \
+    (String) { .err = false, .s = s, .length = cstr_len(s) }
+
+#define assert_not_null(_var, _msg) \
+    {                               \
+        if ((_var) == NULL)         \
+            panic(_msg);            \
+    }
 
 void zero_memory(void *p, u64 size)
 {
-    if (p == NULL)
-        panic("zero_memory: p is NULL");
+    assert_not_null(p, "zero_memory: p is NULL");
     u8 *_p = (u8 *)p;
     for (int i = 0; i < size; i++)
         _p[i] = 0;
@@ -130,26 +165,24 @@ void zero_memory(void *p, u64 size)
 
 void copy_memory(void *dest, void *source, u64 size)
 {
-    if (dest == NULL)
-        panic("copy_memory: destination is NULL");
-    if (source == NULL)
-        panic("copy_memory: source is NULL");
+    assert_not_null(dest, "copy_memory: destination is NULL");
+    assert_not_null(source, "copy_memory: source is NULL");
     u8 *_dst = (u8 *)dest;
     u8 *_src = (u8 *)source;
     for (int i = 0; i < size; i++)
         _dst[i] = _src[i];
 }
 
-// MARK: Allocator implementation
+// MARK: Allocator
 
-void *alloc(Allocator *a, u64 size)
+void *alloc(Allocator a, u64 size)
 {
-    return a->proc(a, ALLOCATOR_MSG_ALLOC, size, NULL);
+    return a.proc(a, ALLOCATOR_MSG_ALLOC, size, NULL);
 }
 
-void *alloc_zero(Allocator *a, u64 size)
+void *alloc_zero(Allocator a, u64 size)
 {
-    return a->proc(a, ALLOCATOR_MSG_ZERO_ALLOC, size, NULL);
+    return a.proc(a, ALLOCATOR_MSG_ZERO_ALLOC, size, NULL);
 }
 
 // Temporary allocator using by default 4MB of max memory. Does not support
@@ -164,7 +197,7 @@ void reset_temp_memory()
     _temp_alloc_head = _temp_alloc_buffer;
 }
 
-static void *temporary_allocator_proc(Allocator *a, AllocatorMessage msg, u64 size, void *old_ptr)
+static void *temporary_allocator_proc(Allocator a, AllocatorMessage msg, u64 size, void *old_ptr)
 {
     switch (msg)
     {
@@ -209,21 +242,20 @@ Allocator get_temporary_allocator()
 void *temp_alloc(u64 size)
 {
     Allocator a = get_temporary_allocator();
-    return alloc(&a, size);
+    return alloc(a, size);
 }
 
 void *temp_zero_alloc(u64 size)
 {
     Allocator a = get_temporary_allocator();
-    return alloc_zero(&a, size);
+    return alloc_zero(a, size);
 }
 
-// MARK: String implementation
+// MARK: String
 
 uint cstr_len(char *s)
 {
-    if (s == NULL)
-        panic("cstr_len: s is NULL");
+    assert_not_null(s, "cstr_len: s is NULL");
     uint count = 0;
     char *p = s;
     while (*p != 0)
@@ -245,32 +277,44 @@ String str_view(String s, uint start, uint end)
     };
 }
 
-String str_new(char *s)
+String str_temp(char *s)
+{
+    return str_alloc_cstr(get_temporary_allocator(), s);
+}
+
+String str_alloc(Allocator a, String s)
+{
+    if (s.err)
+        return ERROR_STRING;
+
+    char *mem = alloc(a, s.length);
+    if (mem == NULL)
+        return ERROR_STRING;
+
+    copy_memory(mem, s.s, s.length);
+    return (String){
+        .err = false,
+        .length = s.length,
+        .s = mem,
+    };
+}
+
+String str_alloc_cstr(Allocator a, char *s)
 {
     if (s == NULL)
         return ERROR_STRING;
+
     u64 len = cstr_len(s);
-    char *mem = temp_alloc(len);
+    char *mem = alloc(a, len);
     if (mem == NULL)
         return ERROR_STRING;
+
     copy_memory(mem, s, len);
     return (String){
         .err = false,
         .length = len,
         .s = mem,
     };
-}
-
-String str_alloc(Allocator *a, String s)
-{
-    // TODO: make allocator first
-    return ERROR_STRING;
-}
-
-String str_alloc_cstr(Allocator *a, char *s)
-{
-    // TODO: make allocator first
-    return ERROR_STRING;
 }
 
 uint str_count(String s, char c)
@@ -330,7 +374,7 @@ String str_replace_char(String s, char old, char new_c)
 
 String str_replace_str(String s, String old, String new_s, Allocator a)
 {
-    // TODO: implement replace string string
+    // TODO: replace string string
     return ERROR_STRING;
 }
 
@@ -338,6 +382,7 @@ String str_reverse(String s)
 {
     if (s.err)
         return ERROR_STRING;
+
     uint l = s.length / 2;
     for (int i = 0; i < l; i++)
     {
@@ -346,7 +391,63 @@ String str_reverse(String s)
         s.s[i] = s.s[right_idx];
         s.s[right_idx] = left;
     }
+
     return s;
+}
+
+// MARK: StringBuilder
+
+StringBuilder str_builder_new(Allocator a, u64 size)
+{
+    char *mem = alloc(a, size);
+    if (mem == NULL)
+        return ERROR_STRING_BUILDER;
+
+    return (StringBuilder){
+        .err = false,
+        .length = 0,
+        .size = size,
+        .mem = mem,
+    };
+}
+
+bool str_builder_append(StringBuilder *sb, String s)
+{
+    assert_not_null(sb, "str_builder_append: sb is NULL");
+    if (s.err || sb->err)
+        return false;
+    if (sb->length == sb->size)
+        return false;
+
+    // Truncate appended string if it will overflow buffer
+    // and mark function as failed.
+    if (sb->length + s.length > sb->size)
+    {
+        u64 length = sb->size - sb->length;
+        copy_memory(sb->mem + sb->length, s.s, length);
+        sb->length = sb->size;
+        return false;
+    }
+
+    copy_memory(sb->mem + sb->length, s.s, s.length);
+    sb->length += s.length;
+    return true;
+}
+
+bool str_builder_append_cstr(StringBuilder *sb, char *s)
+{
+    assert_not_null(s, "str_builder_append_cstr: s is NULL");
+    return str_builder_append(sb, _STRING(s));
+}
+
+String str_builder_to_string(StringBuilder *sb)
+{
+    assert_not_null(sb, "str_builder_to_string: sb is NULL");
+    return (String){
+        .err = false,
+        .length = sb->length,
+        .s = sb->mem,
+    };
 }
 
 // String: split, find, dup, trim, iter, concat, StringBuilder, StringArray

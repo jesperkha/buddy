@@ -8,11 +8,11 @@
 
 	Copies memory from source to dest. Size is in BYTES. 
  ([source](buddy.h#30))
-- `void *alloc(Allocator *a, u64 size)`
+- `void *alloc(Allocator a, u64 size)`
 
 	Allocates memory using the given allocator. Returns NULL if the allocation fails. 
  ([source](buddy.h#30))
-- `void *alloc_zero(Allocator *a, u64 size)`
+- `void *alloc_zero(Allocator a, u64 size)`
 
 	Same as `alloc`, but zeros out memory as well. 
  ([source](buddy.h#30))
@@ -36,15 +36,15 @@
 
 	Returns the byte length of a NULL-terminated C string. 
  ([source](buddy.h#30))
-- `String str_new(char *s)`
+- `String str_temp(char *s)`
 
 	Allocates a new string using the temporary allocator. See `str_alloc` to use a custom allocator. Returns ERROR_STRING if allocation fails or s is NULL. 
  ([source](buddy.h#30))
-- `String str_alloc(Allocator *a, String s)`
+- `String str_alloc(Allocator a, String s)`
 
 	Allocates and returns a copy of the string using allocator. Returns ERROR_STRING if allocation fails or s har an error. 
  ([source](buddy.h#30))
-- `String str_alloc_cstr(Allocator *a, char *s)`
+- `String str_alloc_cstr(Allocator a, char *s)`
 
 	Allocates and returns a copy of the string using allocator. Returns ERROR_STRING if allocation fails. 
  ([source](buddy.h#30))
@@ -54,7 +54,7 @@
  ([source](buddy.h#30))
 - `bool str_equal(String a, String b)`
 
-	Returns true if both strings are equal. Returns false if not or either has an error. 
+	Returns true if both strings are equal. Returns false if not, or if one has an error. 
  ([source](buddy.h#30))
 - `uint str_count(String s, char c)`
 
@@ -79,4 +79,20 @@
 - `String str_reverse(String s)`
 
 	Reverses the original string. Returns same string for convenience. Returns ERROR_STRING if s has an error. 
+ ([source](buddy.h#30))
+- `StringBuilder str_builder_new(Allocator a, u64 size)`
+
+	Returns a new allocated string builder with the given max size. Returns ERROR_STRING_BUILDER if allocation fails. 
+ ([source](buddy.h#30))
+- `bool str_builder_append(StringBuilder *sb, String s)`
+
+	Appends string to the builder. Returns true on success. If the string is too long and would overflow the builders max size, the string is truncated to fit within the builder, and returns false. Returns false if s has an error. 
+ ([source](buddy.h#30))
+- `bool str_builder_append_cstr(StringBuilder *sb, char *s)`
+
+	Same as `str_builder_append`. 
+ ([source](buddy.h#30))
+- `String str_builder_to_string(StringBuilder *sb)`
+
+	Returns the string builder as a string. 
  ([source](buddy.h#30))
