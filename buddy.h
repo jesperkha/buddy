@@ -96,8 +96,8 @@ String str_alloc_cstr(Allocator *a, char *s);
 // Returns a string view of the original string. Returns ERROR_STRING if the
 // range is out of bounds or the original string has an error.
 String str_view(String s, uint start, uint end);
-// Returns true if both strings are equal. Returns false if not or either has an
-// error.
+// Returns true if both strings are equal. Returns false if not, or if one has
+// an error.
 bool str_equal(String a, String b);
 // Returns count of character c in string s.
 uint str_count(String s, char c);

@@ -67,6 +67,23 @@ Test(String, {
     assert(!str_equal(str_new("hello"), str_new("Hello")), "Expected not equal");
     assert(!str_equal(str_new("he"), str_new("hello")), "Expected not equal");
 }
+{
+    log("string count");
+    assert(str_count(str_new("Hello world!"), 'l') == 3, "Expected 3");
+}
+{
+    log("string replace");
+    String replaced = str_replace_char(str_new("Hello world!"), 'l', '-');
+    String expect = str_new("He--o wor-d!");
+    assert(str_equal(replaced, expect), "Expected equal");
+    // TODO: str_replace_str()
+}
+{
+    log("string reverse");
+    String reversed = str_reverse(str_new("Hello world!"));
+    String expect = str_new("!dlrow olleH");
+    assert(str_equal(reversed, expect), "Expected equal");
+}
 });
 
 int main()
