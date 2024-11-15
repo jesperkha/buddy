@@ -198,30 +198,45 @@ void *alloc_realloc(Allocator a, void *p, u64 new_size)
 // freeing or reallocation as this doesnt really makes sense for a temporary
 // allocator.
 
+#define BLOCK_SIGNATURE (0xDEADDECAFC0FFEE7ull)
+
 u8 _temp_alloc_buffer[TEMP_ALLOC_BUFSIZE];
 u8 *_temp_alloc_head = _temp_alloc_buffer;
+
+typedef struct TempMemoryHeader
+{
+    u64 signature;
+    u64 size;
+} TempMemoryHeader;
 
 void reset_temp_memory()
 {
     _temp_alloc_head = _temp_alloc_buffer;
 }
 
-// Temp memory allocation using global buffer. Does not support reallocation as
-// there are no block headers. Does not support free as this doesnt really make
-// sense for a temporary allocator. Change initial buffer size by setting
-// TEMP_ALLOC_BUFSIZE.
+// Temp memory allocation using global buffer. Does not support free as this
+// doesnt really make sense for a temporary allocator. Does not free old memory
+// on reallocation. Change initial buffer size by setting TEMP_ALLOC_BUFSIZE.
 static void *temporary_allocator_proc(Allocator a, AllocatorMessage msg, u64 size, void *old_ptr)
 {
     switch (msg)
     {
     case ALLOCATOR_MSG_ALLOC:
     {
-        if ((_temp_alloc_head - _temp_alloc_buffer) + size > TEMP_ALLOC_BUFSIZE)
+        u64 actual_size = size + sizeof(TempMemoryHeader);
+        if ((_temp_alloc_head - _temp_alloc_buffer) + actual_size > TEMP_ALLOC_BUFSIZE)
             return NULL;
 
-        void *p = _temp_alloc_head;
-        _temp_alloc_head += size;
-        return p;
+        TempMemoryHeader header = {
+            .signature = BLOCK_SIGNATURE,
+            .size = size,
+        };
+
+        u8 *p = _temp_alloc_head;
+        copy_memory(p, &header, sizeof(TempMemoryHeader));
+
+        _temp_alloc_head += actual_size;
+        return p + sizeof(TempMemoryHeader);
     }
 
     case ALLOCATOR_MSG_ZERO_ALLOC:
@@ -233,11 +248,22 @@ static void *temporary_allocator_proc(Allocator a, AllocatorMessage msg, u64 siz
         return p;
     }
 
+    case ALLOCATOR_MSG_REALLOC:
+    {
+        void *p = temporary_allocator_proc(a, ALLOCATOR_MSG_ALLOC, size, NULL);
+        if (p == NULL)
+            return p;
+
+        TempMemoryHeader *header = (TempMemoryHeader *)((u8 *)old_ptr - sizeof(TempMemoryHeader));
+        if (header->signature != BLOCK_SIGNATURE)
+            return NULL;
+
+        copy_memory(p, old_ptr, header->size);
+        return p;
+    }
+
     case ALLOCATOR_MSG_FREE:
         panic("temporary allocator cannot free memory, only reset");
-
-    case ALLOCATOR_MSG_REALLOC:
-        panic("temporary allocator cannot reallocate memory");
     }
 
     panic("temporary allocator got unknown allocation message");
@@ -433,6 +459,10 @@ bool str_builder_append(StringBuilder *sb, String s)
     if (sb->length + s.length > sb->size)
     {
         u64 new_size = sb->size * 2;
+        // Resize until it fits the string
+        while (new_size < sb->size + s.length)
+            new_size *= 2;
+
         char *new_mem = alloc_realloc(sb->a, sb->mem, new_size);
         if (new_mem == NULL)
             return false;

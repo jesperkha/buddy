@@ -41,7 +41,7 @@ Test(Allocation, {
     reset_temp_memory();
 
     log("temp zero alloc");
-    u64 size = TEMP_ALLOC_BUFSIZE;
+    u64 size = TEMP_ALLOC_BUFSIZE - 128; // Size of header
     u8 *p = temp_zero_alloc(size);
     assert(p != NULL, "Expected valid poiner");
     for (int i = 0; i < size; i++)
@@ -80,7 +80,7 @@ Test(String, {
     assert(str_equal(replaced, expect), "Expected equal");
 }
 {
-    log("string replace string");
+    log("string replace string: NOT IMPLEMENTED");
     String expect = str_temp("Hello there my friends!");
     String replaced = str_replace_str(
         get_temporary_allocator(),
@@ -111,14 +111,14 @@ Test(StringBuilder, {
     assert(str_equal(expect, str_builder_to_string(&sb)), "Expected equal");
 }
 {
-    log("string builder realloc: NOT IMPLEMENTED");
-    // StringBuilder sb = str_builder_new(get_temporary_allocator(), 100);
-    // assert(!sb.err, "Expected init success");
-    // assert(str_builder_append_cstr(&sb, "abcde"), "Expected success");
-    // assert(str_builder_append_cstr(&sb, "fghijklmno"), "Expected success");
+    log("string builder realloc");
+    StringBuilder sb = str_builder_new(get_temporary_allocator(), 13);
+    assert(!sb.err, "Expected init success");
+    assert(str_builder_append_cstr(&sb, "Hello world! "), "Expected success");
+    assert(str_builder_append_cstr(&sb, "I have twelve dogs."), "Expected success");
 
-    // String expect = str_temp("abcdefghijklmno");
-    // assert(str_equal(expect, str_builder_to_string(&sb)), "Expected equal");
+    String expect = str_temp("Hello world! I have twelve dogs.");
+    assert(str_equal(expect, str_builder_to_string(&sb)), "Expected equal");
 }
 })
 
