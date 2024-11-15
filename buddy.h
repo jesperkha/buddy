@@ -54,7 +54,7 @@ typedef struct Allocator
 
 // Allocates memory. Returns NULL if the allocation fails.
 void *alloc(Allocator a, u64 size);
-// Same as `alloc`, but zeroes out memory as wello
+// Same as `alloc`, but zeroes out memory as well.
 void *alloc_zero(Allocator a, u64 size);
 // Reallocates memory with new size. Returns NULL if the allocation fails.
 void *alloc_realloc(Allocator a, void *p, u64 new_size);
