@@ -54,11 +54,12 @@ typedef struct Allocator
     void *(*proc)(struct Allocator a, AllocatorMessage msg, u64 size, void *old_ptr);
 } Allocator;
 
-// Allocates memory using the given allocator. Returns NULL if the allocation
-// fails.
+// Allocates memory. Returns NULL if the allocation fails.
 void *alloc(Allocator a, u64 size);
-// Same as `alloc`, but zeros out memory as well.
+// Same as `alloc`, but zeroes out memory as wello
 void *alloc_zero(Allocator a, u64 size);
+// Reallocates memory with new size. Returns NULL if the allocation fails.
+void *alloc_realloc(Allocator a, void *p, u64 new_size);
 
 // The temporary allocator uses predefined global memory with size
 // TEMP_ALLOC_BUFSIZE, which is by default 4MB.
@@ -68,7 +69,7 @@ void reset_temp_memory();
 // Allocates memory using the temporary allocator. Returns NULL if the
 // allocation fails.
 void *temp_alloc(u64 size);
-// Same as `temp_alloc`, but zeros out memory as well.
+// Same as `temp_alloc`, but zeroes out memory as well.
 void *temp_zero_alloc(u64 size);
 
 // MARK: String
@@ -112,7 +113,7 @@ String str_lower(String s);
 String str_replace_char(String s, char old, char new_c);
 // Allocates and returns a new copy of s with the old substrings replaced with
 // new. Returns ERROR_STRING if either string has an error or allocation fails.
-String str_replace_str(String s, String old, String new_s, Allocator a);
+String str_replace_str(Allocator a, String s, String old, String new_s);
 // Reverses the original string. Returns same string for convenience. Returns
 // ERROR_STRING if s has an error.
 String str_reverse(String s);
@@ -121,6 +122,7 @@ String str_reverse(String s);
 
 typedef struct StringBuilder
 {
+    Allocator a;
     u64 size;
     u64 length;
     char *mem;
@@ -132,9 +134,8 @@ typedef struct StringBuilder
 // Returns a new allocated string builder with the given max size. Returns
 // ERROR_STRING_BUILDER if allocation fails.
 StringBuilder str_builder_new(Allocator a, u64 size);
-// Appends string to the builder. Returns true on success. If the string is too
-// long and would overflow the builders max size, the string is truncated to fit
-// within the builder, and returns false. Returns false if s has an error.
+// Appends string to the builder. Returns true on success. Returns false if s
+// has an error or internal reallocation fails.
 bool str_builder_append(StringBuilder *sb, String s);
 // Same as `str_builder_append`.
 bool str_builder_append_cstr(StringBuilder *sb, char *s);
@@ -177,12 +178,20 @@ void copy_memory(void *dest, void *source, u64 size)
 
 void *alloc(Allocator a, u64 size)
 {
+    assert_not_null(a.proc, "alloc: a is NULL");
     return a.proc(a, ALLOCATOR_MSG_ALLOC, size, NULL);
 }
 
 void *alloc_zero(Allocator a, u64 size)
 {
+    assert_not_null(a.proc, "alloc: a is NULL");
     return a.proc(a, ALLOCATOR_MSG_ZERO_ALLOC, size, NULL);
+}
+
+void *alloc_realloc(Allocator a, void *p, u64 new_size)
+{
+    assert_not_null(a.proc, "alloc: a is NULL");
+    return a.proc(a, ALLOCATOR_MSG_REALLOC, new_size, p);
 }
 
 // Temporary allocator using by default 4MB of max memory. Does not support
@@ -197,6 +206,10 @@ void reset_temp_memory()
     _temp_alloc_head = _temp_alloc_buffer;
 }
 
+// Temp memory allocation using global buffer. Does not support reallocation as
+// there are no block headers. Does not support free as this doesnt really make
+// sense for a temporary allocator. Change initial buffer size by setting
+// TEMP_ALLOC_BUFSIZE.
 static void *temporary_allocator_proc(Allocator a, AllocatorMessage msg, u64 size, void *old_ptr)
 {
     switch (msg)
@@ -222,11 +235,9 @@ static void *temporary_allocator_proc(Allocator a, AllocatorMessage msg, u64 siz
 
     case ALLOCATOR_MSG_FREE:
         panic("temporary allocator cannot free memory, only reset");
-        break;
 
     case ALLOCATOR_MSG_REALLOC:
         panic("temporary allocator cannot reallocate memory");
-        break;
     }
 
     panic("temporary allocator got unknown allocation message");
@@ -372,9 +383,9 @@ String str_replace_char(String s, char old, char new_c)
     return s;
 }
 
-String str_replace_str(String s, String old, String new_s, Allocator a)
+String str_replace_str(Allocator a, String s, String old, String new_s)
 {
-    // TODO: replace string string
+    // TODO: str_replace_str()
     return ERROR_STRING;
 }
 
@@ -408,6 +419,7 @@ StringBuilder str_builder_new(Allocator a, u64 size)
         .length = 0,
         .size = size,
         .mem = mem,
+        .a = a,
     };
 }
 
@@ -416,17 +428,17 @@ bool str_builder_append(StringBuilder *sb, String s)
     assert_not_null(sb, "str_builder_append: sb is NULL");
     if (s.err || sb->err)
         return false;
-    if (sb->length == sb->size)
-        return false;
 
-    // Truncate appended string if it will overflow buffer
-    // and mark function as failed.
+    // Reallocate internal buffer on overflow
     if (sb->length + s.length > sb->size)
     {
-        u64 length = sb->size - sb->length;
-        copy_memory(sb->mem + sb->length, s.s, length);
-        sb->length = sb->size;
-        return false;
+        u64 new_size = sb->size * 2;
+        char *new_mem = alloc_realloc(sb->a, sb->mem, new_size);
+        if (new_mem == NULL)
+            return false;
+
+        sb->mem = new_mem;
+        sb->size = new_size;
     }
 
     copy_memory(sb->mem + sb->length, s.s, s.length);

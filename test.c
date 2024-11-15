@@ -74,11 +74,22 @@ Test(String, {
     assert(str_count(str_temp("Hello world!"), 'l') == 3, "Expected 3");
 }
 {
-    log("string replace");
+    log("string replace char");
     String replaced = str_replace_char(str_temp("Hello world!"), 'l', '-');
     String expect = str_temp("He--o wor-d!");
     assert(str_equal(replaced, expect), "Expected equal");
-    // TODO: str_replace_str()
+}
+{
+    log("string replace string");
+    String expect = str_temp("Hello there my friends!");
+    String replaced = str_replace_str(
+        get_temporary_allocator(),
+        str_temp("Hello world!"),
+        str_temp("world"),
+        str_temp("there my friends"));
+
+    assert(!replaced.err, "Expected non-error");
+    assert(str_equal(replaced, expect), "Expected equal");
 }
 {
     log("string reverse");
@@ -100,14 +111,14 @@ Test(StringBuilder, {
     assert(str_equal(expect, str_builder_to_string(&sb)), "Expected equal");
 }
 {
-    log("string builder truncate");
-    StringBuilder sb = str_builder_new(get_temporary_allocator(), 10);
-    assert(!sb.err, "Expected init success");
-    assert(str_builder_append_cstr(&sb, "abcde"), "Expected success");
-    assert(!str_builder_append_cstr(&sb, "fghijklmno"), "Expected fail");
+    log("string builder realloc: NOT IMPLEMENTED");
+    // StringBuilder sb = str_builder_new(get_temporary_allocator(), 100);
+    // assert(!sb.err, "Expected init success");
+    // assert(str_builder_append_cstr(&sb, "abcde"), "Expected success");
+    // assert(str_builder_append_cstr(&sb, "fghijklmno"), "Expected success");
 
-    String expect = str_temp("abcdefghij");
-    assert(str_equal(expect, str_builder_to_string(&sb)), "Expected equal");
+    // String expect = str_temp("abcdefghijklmno");
+    // assert(str_equal(expect, str_builder_to_string(&sb)), "Expected equal");
 }
 })
 
