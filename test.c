@@ -49,7 +49,19 @@ Test(Allocation, {
 
     reset_temp_memory();
 }
-});
+{
+    log("arena allocator");
+    Arena *arena = arena_new(get_temporary_allocator(), 64);
+    assert(arena != NULL, "Expected valid arena pointer");
+    String s = str_alloc_cstr(get_arena_allocator(arena), "Hello world!");
+    String expect = str_temp("Hello world!");
+    assert(str_equal(s, expect), "Expected equal");
+    String s2 = str_alloc_cstr(get_arena_allocator(arena), "This is a longer string.");
+    assert(!s2.err, "Expected valid string");
+    void *p = arena_zero_alloc(arena, 100);
+    assert(p == NULL, "Expected NULL");
+}
+})
 
 Test(String, {
 {
@@ -97,7 +109,7 @@ Test(String, {
     String expect = str_temp("!dlrow olleH");
     assert(str_equal(reversed, expect), "Expected equal");
 }
-});
+})
 
 Test(StringBuilder, {
 {

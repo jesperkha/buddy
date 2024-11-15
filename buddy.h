@@ -49,8 +49,6 @@ typedef enum AllocatorMessage
 typedef struct Allocator
 {
     void *data;
-    u64 size;
-    u64 pos;
     void *(*proc)(struct Allocator a, AllocatorMessage msg, u64 size, void *old_ptr);
 } Allocator;
 
@@ -73,6 +71,24 @@ void *temp_alloc(u64 size);
 void *temp_zero_alloc(u64 size);
 // Reallocates to new size. Does not free the original memory.
 void *temp_realloc(void *p, u64 size);
+
+// MARK: Arena
+
+typedef struct Arena
+{
+    u8 *mem;
+    u64 size;
+    u64 pos;
+} Arena;
+
+// Allocates an arena with the given max size. Returns NULL on allocation fail.
+Arena *arena_new(Allocator a, u64 size);
+// Allocates a region in the arena. Returns NULL if arena is full.
+void *arena_alloc(Arena *a, u64 size);
+// Same as `arena_alloc`, but zeroes out memory as well.
+void *arena_zero_alloc(Arena *a, u64 size);
+// Get an allocator using the given arena.
+Allocator get_arena_allocator(Arena *a);
 
 // MARK: String
 
@@ -268,7 +284,7 @@ static void *temporary_allocator_proc(Allocator a, AllocatorMessage msg, u64 siz
         panic("temporary allocator cannot free memory, only reset");
     }
 
-    panic("temporary allocator got unknown allocation message");
+    panic("temporary_allocator_proc: unknown allocation message");
 }
 
 Allocator get_temporary_allocator()
@@ -294,6 +310,80 @@ void *temp_realloc(void *p, u64 size)
 {
     Allocator a = get_temporary_allocator();
     return alloc_realloc(a, p, size);
+}
+
+// MARK: Arena
+
+Arena *arena_new(Allocator a, u64 size)
+{
+    Arena *arena = alloc(a, size + sizeof(Arena));
+    if (arena == NULL)
+        return arena;
+
+    arena->mem = (u8 *)arena + sizeof(Arena);
+    arena->pos = 0;
+    arena->size = size;
+    return arena;
+}
+
+void *arena_alloc(Arena *a, u64 size)
+{
+    assert_not_null(a, "arena_alloc: a is NULL");
+    if (a->pos + size > a->size)
+        return NULL;
+
+    void *p = a->mem + a->pos;
+    a->pos += size;
+    return p;
+}
+
+void *arena_zero_alloc(Arena *a, u64 size)
+{
+    void *p = arena_alloc(a, size);
+    if (p == NULL)
+        return p;
+
+    zero_memory(p, size);
+    return p;
+}
+
+static void *arena_allocator_proc(Allocator a, AllocatorMessage msg, u64 size, void *old_ptr)
+{
+    switch (msg)
+    {
+    case ALLOCATOR_MSG_ALLOC:
+    {
+        Arena *arena = a.data;
+        if (arena == NULL)
+            return arena;
+
+        return arena_alloc(arena, size);
+    }
+
+    case ALLOCATOR_MSG_ZERO_ALLOC:
+    {
+        Arena *arena = a.data;
+        if (arena == NULL)
+            return arena;
+
+        return arena_zero_alloc(arena, size);
+    }
+
+    case ALLOCATOR_MSG_REALLOC:
+        panic("arena allocator cannot reallocate memory");
+    case ALLOCATOR_MSG_FREE:
+        panic("arena allocator cannot free memory");
+    }
+
+    panic("arena_allocator_proc: got unknown allocator message");
+}
+
+Allocator get_arena_allocator(Arena *a)
+{
+    Allocator al;
+    al.data = a;
+    al.proc = arena_allocator_proc;
+    return al;
 }
 
 // MARK: String

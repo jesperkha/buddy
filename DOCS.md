@@ -10,11 +10,15 @@
  ([source](buddy.h#30))
 - `void *alloc(Allocator a, u64 size)`
 
-	Allocates memory using the given allocator. Returns NULL if the allocation fails. 
+	Allocates memory. Returns NULL if the allocation fails. 
  ([source](buddy.h#30))
 - `void *alloc_zero(Allocator a, u64 size)`
 
-	Same as `alloc`, but zeros out memory as well. 
+	Same as `alloc`, but zeroes out memory as wello 
+ ([source](buddy.h#30))
+- `void *alloc_realloc(Allocator a, void *p, u64 new_size)`
+
+	Reallocates memory with new size. Returns NULL if the allocation fails. 
  ([source](buddy.h#30))
 - `Allocator get_temporary_allocator()`
 
@@ -30,7 +34,27 @@
  ([source](buddy.h#30))
 - `void *temp_zero_alloc(u64 size)`
 
-	Same as `temp_alloc`, but zeros out memory as well. 
+	Same as `temp_alloc`, but zeroes out memory as well. 
+ ([source](buddy.h#30))
+- `void *temp_realloc(void *p, u64 size)`
+
+	Reallocates to new size. Does not free the original memory. 
+ ([source](buddy.h#30))
+- `Arena *arena_new(Allocator a, u64 size)`
+
+	Allocates an arena with the given max size. Returns NULL on allocation fail. 
+ ([source](buddy.h#30))
+- `void *arena_alloc(Arena *a, u64 size)`
+
+	Allocates a region in the arena. Returns NULL if arena is full. 
+ ([source](buddy.h#30))
+- `void *arena_zero_alloc(Arena *a, u64 size)`
+
+	Same as `arena_alloc`, but zeroes out memory as well. 
+ ([source](buddy.h#30))
+- `Allocator get_arena_allocator(Arena *a)`
+
+	Get an allocator using the given arena. 
  ([source](buddy.h#30))
 - `uint cstr_len(char *s)`
 
@@ -72,7 +96,7 @@
 
 	Replaces all occurances of old char with new in the original string. Returns the same string for convenience. 
  ([source](buddy.h#30))
-- `String str_replace_str(String s, String old, String new_s, Allocator a)`
+- `String str_replace_str(Allocator a, String s, String old, String new_s)`
 
 	Allocates and returns a new copy of s with the old substrings replaced with new. Returns ERROR_STRING if either string has an error or allocation fails. 
  ([source](buddy.h#30))
@@ -86,7 +110,7 @@
  ([source](buddy.h#30))
 - `bool str_builder_append(StringBuilder *sb, String s)`
 
-	Appends string to the builder. Returns true on success. If the string is too long and would overflow the builders max size, the string is truncated to fit within the builder, and returns false. Returns false if s has an error. 
+	Appends string to the builder. Returns true on success. Returns false if s has an error or internal reallocation fails. 
  ([source](buddy.h#30))
 - `bool str_builder_append_cstr(StringBuilder *sb, char *s)`
 
