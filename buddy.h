@@ -71,6 +71,8 @@ void reset_temp_memory();
 void *temp_alloc(u64 size);
 // Same as `temp_alloc`, but zeroes out memory as well.
 void *temp_zero_alloc(u64 size);
+// Reallocates to new size. Does not free the original memory.
+void *temp_realloc(void *p, u64 size);
 
 // MARK: String
 
@@ -286,6 +288,12 @@ void *temp_zero_alloc(u64 size)
 {
     Allocator a = get_temporary_allocator();
     return alloc_zero(a, size);
+}
+
+void *temp_realloc(void *p, u64 size)
+{
+    Allocator a = get_temporary_allocator();
+    return alloc_realloc(a, p, size);
 }
 
 // MARK: String
