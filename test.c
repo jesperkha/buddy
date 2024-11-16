@@ -61,6 +61,20 @@ Test(Allocation, {
     void *p = arena_zero_alloc(arena, 100);
     assert(p == NULL, "Expected NULL");
 }
+{
+    log("temp memory marking");
+    reset_temp_memory();
+
+    u64 mark = temp_mark();
+    assert(mark == 0, "Expected 0");
+    void *p = temp_alloc(KB(1));
+    assert(p != NULL, "Expected valid pointer");
+    temp_restore_mark(mark);
+    mark = temp_mark();
+    void *pp = temp_alloc(KB(1));
+    assert(pp != NULL, "Expected valid pointer");
+    assert(mark == 0, "Expected 0 after restore");
+}
 })
 
 Test(String, {

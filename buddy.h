@@ -36,7 +36,9 @@ void zero_memory(void *p, u64 size);
 // Copies memory from source to dest. Size is in BYTES.
 void copy_memory(void *dest, void *source, u64 size);
 
-// MARK: Allocator
+// TITLE: Memory
+
+// MARK: Allocators
 
 typedef enum AllocatorMessage
 {
@@ -46,6 +48,11 @@ typedef enum AllocatorMessage
     ALLOCATOR_MSG_REALLOC,
 } AllocatorMessage;
 
+// The allocator is a generic structure with an internal allocation process.
+// Some functions take an allocator as an argument to give the user mote control
+// over how memory gets allocated and used in the program. Most allocators have
+// a `get_x_allocator` function. You can read more about how they work and what
+// they are used for below.
 typedef struct Allocator
 {
     void *data;
@@ -59,8 +66,13 @@ void *alloc_zero(Allocator a, u64 size);
 // Reallocates memory with new size. Returns NULL if the allocation fails.
 void *alloc_realloc(Allocator a, void *p, u64 new_size);
 
+// MARK: Temporary Allocator
+
 // The temporary allocator uses predefined global memory with size
-// TEMP_ALLOC_BUFSIZE, which is by default 4MB.
+// TEMP_ALLOC_BUFSIZE, which is by default 4MB. This is used for short term
+// memory with a scoped lifetime. You can reset the allocator to 0 with
+// `reset_temp_memory()`. The temp allocator cannot free memory, but has
+// `mark()` and `restore()` to push and pop chunks off the allocator stack.
 Allocator get_temporary_allocator();
 // Resets the temporary memory back to size 0.
 void reset_temp_memory();
@@ -71,9 +83,18 @@ void *temp_alloc(u64 size);
 void *temp_zero_alloc(u64 size);
 // Reallocates to new size. Does not free the original memory.
 void *temp_realloc(void *p, u64 size);
+// Create a mark in the temporary allocator that can be returned to later.
+// This should be used for allocations that dont leave the current scope.
+// Returns the mark ID, restore with `temo_restore_mark()`.
+u64 temp_mark();
+// Restores to mark ID. Any memory allocated after the mark will be discarded.
+void temp_restore_mark(u64 id);
 
 // MARK: Arena
 
+// Arenas a chunks of memory you can allocate to and free all at once. They make
+// it easy to handle memory across multiple function calls as you can free
+// everything allocated to the arena all at once.
 typedef struct Arena
 {
     u8 *mem;
@@ -90,8 +111,14 @@ void *arena_zero_alloc(Arena *a, u64 size);
 // Get an allocator using the given arena.
 Allocator get_arena_allocator(Arena *a);
 
+// TITLE: Strings
+
 // MARK: String
 
+// Strings are simply a pointer with a length and an error value. There is no
+// NULL terminator. When using string functions, they may set err=true if
+// something went wrong. This allows future string methods to return gracefully
+// on error, and you just have to check the final string result for an error.
 typedef struct String
 {
     char *s;
@@ -138,6 +165,8 @@ String str_reverse(String s);
 
 // MARK: StringBuilder
 
+// StringBuilder creates a string from multiple others. It automatically
+// reallocates the internal memory with the allocator given on init.
 typedef struct StringBuilder
 {
     Allocator a;
@@ -310,6 +339,16 @@ void *temp_realloc(void *p, u64 size)
 {
     Allocator a = get_temporary_allocator();
     return alloc_realloc(a, p, size);
+}
+
+u64 temp_mark()
+{
+    return _temp_alloc_head - _temp_alloc_buffer;
+}
+
+void temp_restore_mark(u64 id)
+{
+    _temp_alloc_head = _temp_alloc_buffer + id;
 }
 
 // MARK: Arena
