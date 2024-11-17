@@ -61,7 +61,7 @@ def get_formatted(f: TextIO):
             docline += line
         elif docline != "":
             docline = docline.replace("// ", "").replace("\n", " ")
-            stripped = line.strip('\n').strip(";")
+            stripped = line.strip('\n')
             line = get_function_implementation(file_s, stripped)
             source = f"[source](https://github.com/jesperkha/buddy/blob/main/buddy.h#L{line})"
             # docline = f"\n```c\n{stripped}\n```\n\n{docline} {source}\n"
