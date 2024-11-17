@@ -5,6 +5,7 @@
 // Common
 void zero_memory(void *p, u64 size);             // Zeros out memory. Size is in BYTES. 
 void copy_memory(void *dest, void *source, u64 size); // Copies memory from source to dest. Size is in BYTES. 
+void println(char *s);                           // Print NULL terminated string to stdout. 
 
 // Memory
 // --------------------------------------
@@ -55,4 +56,18 @@ StringBuilder str_builder_new(Allocator a, u64 size); // Returns a new allocated
 bool str_builder_append(StringBuilder *sb, String s); // Appends string to the builder. Returns true on success. Returns false if s has an error or internal reallocation fails. 
 bool str_builder_append_cstr(StringBuilder *sb, char *s); // Same as `str_builder_append`. 
 String str_builder_to_string(StringBuilder *sb); // Returns the string builder as a string. 
+
+// OS
+// --------------------------------------
+
+// IO
+typedef struct ByteArray;                        // Array of bytes with length. 
+void os_exit(u8 status);                         // Exit program with status. Flushes standard input and output. 
+void os_write_out(u8 *bytes, u64 length);        // Write bytes to standard output. 
+void os_write_err(u8 *bytes, u64 length);        // Write bytes to standard error output. 
+ByteArray os_read_input(u8 *buffer, u64 max_length); // Returns bytes read from standard input, with the bytes pointer pointing to the given buffer. Returns ERROR_BYTE_ARRAY on failed read. 
+ByteArray os_read_input_all(Allocator a, u64 max_length); // Returns bytes read from standard input, allocating a byte array using the given allocator. Returns ERROR_BYTE_ARRAY on allocation fail or failed read. 
+
+// Files
+typedef struct File;                             // File 
 ```

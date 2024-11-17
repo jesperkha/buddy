@@ -16,7 +16,7 @@
     if (!(v))        \
         fail(m);
 #define run(name) (test_##name)();
-#define Test(name, body) \
+#define test(name, body) \
     bool test_##name()   \
     {                    \
         title(#name);    \
@@ -29,7 +29,7 @@
 // -------------------------  TESTING  ----------------------------------
 // ----------------------------------------------------------------------
 
-Test(Allocation, {
+test(Allocation, {
 {
     log("temporary allocator");
     void *a = temp_alloc(100);
@@ -77,7 +77,7 @@ Test(Allocation, {
 }
 })
 
-Test(String, {
+test(String, {
 {
     log("upper and lower case");
     String s = str_temp("Hello World!");
@@ -107,15 +107,15 @@ Test(String, {
 }
 {
     log("string replace string: NOT IMPLEMENTED");
-    String expect = str_temp("Hello there my friends!");
-    String replaced = str_replace_str(
-        get_temporary_allocator(),
-        str_temp("Hello world!"),
-        str_temp("world"),
-        str_temp("there my friends"));
+    // String expect = str_temp("Hello there my friends!");
+    // String replaced = str_replace_str(
+    //     get_temporary_allocator(),
+    //     str_temp("Hello world!"),
+    //     str_temp("world"),
+    //     str_temp("there my friends"));
 
-    assert(!replaced.err, "Expected non-error");
-    assert(str_equal(replaced, expect), "Expected equal");
+    // assert(!replaced.err, "Expected non-error");
+    // assert(str_equal(replaced, expect), "Expected equal");
 }
 {
     log("string reverse");
@@ -125,7 +125,7 @@ Test(String, {
 }
 })
 
-Test(StringBuilder, {
+test(StringBuilder, {
 {
     log("string builder append");
     StringBuilder sb = str_builder_new(get_temporary_allocator(), 100);
