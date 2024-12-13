@@ -61,6 +61,19 @@ void *alloc(Allocator a, u64 size);
 void *alloc_zero(Allocator a, u64 size);
 // Reallocates memory with new size. Returns NULL if the allocation fails.
 void *alloc_realloc(Allocator a, void *p, u64 new_size);
+// Frees memory allocated by a.
+void alloc_free(Allocator a, void *p);
+
+// Currently a wrapper for malloc. Will soon change to a custom heap allocator.
+Allocator get_heap_allocator();
+// Allocates memory with heap allocator. Returns NULL if allocation fails.
+void *heap_alloc(u64 size);
+// Same as `heap_alloc`, but zeroes memory as well.
+void *heap_zero_alloc(u64 size);
+// Reallocates pointer to new size with heap allocator. Returns NULL on failure.
+void *heap_realloc(void *old_ptr, u64 size);
+// Frees heap allocated pointer.
+void heap_free(void *ptr);
 
 // MARK: Temporary Allocator
 
@@ -172,7 +185,12 @@ typedef struct StringBuilder
     bool err;
 } StringBuilder;
 
-#define ERROR_STRING_BUILDER ((StringBuilder){.mem = NULL, .length = 0, .err = true, .size = 0})
+#define ERROR_STRING_BUILDER ((StringBuilder){\
+        .size = 0,\
+        .length = 0,\
+        .mem = NULL, \
+        .err = true,\
+        })
 
 // Returns a new allocated string builder with the given max size. Returns
 // ERROR_STRING_BUILDER if allocation fails.
@@ -185,6 +203,7 @@ bool str_builder_append_cstr(StringBuilder *sb, char *s);
 // Returns the string builder as a string.
 String str_builder_to_string(StringBuilder *sb);
 
+<<<<<<< HEAD
 // TITLE: OS
 
 // MARK: IO
@@ -759,3 +778,5 @@ void println(char *s)
 // Time: now, add, format, difference
 
 #endif
+=======
+>>>>>>> e4e83d2 (finish arena and heap allocator, fix compiler warnings)
