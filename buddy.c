@@ -1,6 +1,17 @@
 #include "buddy.h"
 
+#include <stdlib.h>
+
+#include <unistd.h>
+#include <fcntl.h>
+
 // MARK: Internal utils
+
+#define panic(msg)              \
+    {                           \
+        println("buddy: " msg); \
+        os_exit(1);             \
+    }
 
 // Root of all evil
 #define _STRING(_s) \
@@ -126,6 +137,7 @@ static void *temporary_allocator_proc(Allocator a, AllocatorMessage msg, u64 siz
     }
 
     panic("temporary_allocator_proc: unknown allocation message");
+    return NULL;
 }
 
 Allocator get_temporary_allocator()
@@ -256,6 +268,7 @@ static void *arena_allocator_proc(Allocator a, AllocatorMessage msg, u64 size, v
     }
 
     panic("arena_allocator_proc: got unknown allocator message");
+    return NULL;
 }
 
 Allocator get_arena_allocator(Arena *a)
@@ -287,6 +300,7 @@ static void *heap_allocator_proc(Allocator a, AllocatorMessage msg, u64 size, vo
     }
 
     panic("heap_allocator_proc: got unknown allocator message");
+    return NULL;
 }
 
 Allocator get_heap_allocator()
@@ -519,6 +533,60 @@ String str_builder_to_string(StringBuilder *sb)
         .length = sb->length,
         .err = false,
     };
+}
+
+// MARK: OS
+
+void os_write_out(u8 *bytes, u64 length)
+{
+    assert_not_null(bytes, "_os_write: bytes is NULL");
+    write(STDOUT_FILENO, bytes, length);
+}
+
+void os_write_err(u8 *bytes, u64 length)
+{
+    assert_not_null(bytes, "_os_write: bytes is NULL");
+    write(STDOUT_FILENO, bytes, length);
+}
+
+ByteArray os_read_input(u8 *buffer, u64 max_length)
+{
+    assert_not_null(buffer, "os_read_input: buffer is NULL");
+    u64 len = read(STDIN_FILENO, buffer, max_length);
+    if (len < 0)
+        return ERROR_BYTE_ARRAY;
+
+    return (ByteArray){
+        .err = false,
+        .bytes = buffer,
+        .length = len,
+    };
+}
+
+ByteArray os_read_all_input(Allocator a, u64 max_length)
+{
+    // TODO: os_read_input_all
+    return (ByteArray){0};
+}
+
+void _os_flush_output()
+{
+    // Write nothing to flush
+    write(STDERR_FILENO, "", 0);
+    write(STDOUT_FILENO, "", 0);
+}
+
+void os_exit(u8 status)
+{
+    _os_flush_output();
+    _exit(status);
+}
+
+void println(char *s)
+{
+    assert_not_null(s, "print_cstr: s is NULL");
+    os_write_out((u8 *)s, cstr_len(s));
+    os_write_out((u8 *)"\n", 1);
 }
 
 // String: split, find, dup, trim, iter, concat, StringBuilder, StringArray
