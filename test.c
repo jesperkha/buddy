@@ -51,7 +51,7 @@ test(Allocation, {
 }
 {
     log("arena allocator");
-    Arena *arena = arena_new(get_temporary_allocator(), 64);
+    Arena *arena = arena_new(get_temporary_allocator(), 128);
     assert(arena != NULL, "Expected valid arena pointer");
     String s = str_alloc_cstr(get_arena_allocator(arena), "Hello world!");
     String expect = str_temp("Hello world!");
