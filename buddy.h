@@ -259,19 +259,16 @@ typedef struct File
 void zero_memory(void *p, u64 size)
 {
     assert_not_null(p, "zero_memory: p is NULL");
-    u8 *_p = (u8 *)p;
     for (int i = 0; i < size; i++)
-        _p[i] = 0;
+        ((u8 *)p)[i] = 0;
 }
 
 void copy_memory(void *dest, void *source, u64 size)
 {
     assert_not_null(dest, "copy_memory: destination is NULL");
     assert_not_null(source, "copy_memory: source is NULL");
-    u8 *_dst = (u8 *)dest;
-    u8 *_src = (u8 *)source;
     for (int i = 0; i < size; i++)
-        _dst[i] = _src[i];
+        ((u8 *)dest)[i] = ((u8 *)source)[i];
 }
 
 // MARK: Allocator
