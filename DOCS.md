@@ -1,7 +1,4 @@
-# Buddy Cheatsheet
 
-
-```c
 // Common
 void zero_memory(void *p, u64 size);             // Zeros out memory. Size is in BYTES. 
 void copy_memory(void *dest, void *source, u64 size); // Copies memory from source to dest. Size is in BYTES. 
@@ -15,6 +12,12 @@ typedef struct Allocator;                        // The allocator is a generic s
 void *alloc(Allocator a, u64 size);              // Allocates memory. Returns NULL if the allocation fails. 
 void *alloc_zero(Allocator a, u64 size);         // Same as `alloc`, but zeroes out memory as well. 
 void *alloc_realloc(Allocator a, void *p, u64 new_size); // Reallocates memory with new size. Returns NULL if the allocation fails. 
+void alloc_free(Allocator a, void *p);           // Frees memory allocated by a. 
+Allocator get_heap_allocator();                  // Currently a wrapper for malloc. Will soon change to a custom heap allocator. 
+void *heap_alloc(u64 size);                      // Allocates memory with heap allocator. Returns NULL if allocation fails. 
+void *heap_zero_alloc(u64 size);                 // Same as `heap_alloc`, but zeroes memory as well. 
+void *heap_realloc(void *old_ptr, u64 size);     // Reallocates pointer to new size with heap allocator. Returns NULL on failure. 
+void heap_free(void *ptr);                       // Frees heap allocated pointer. 
 
 // Temporary Allocator
 Allocator get_temporary_allocator();             // The temporary allocator uses predefined global memory with size TEMP_ALLOC_BUFSIZE, which is by default 4MB. This is used for short term memory with a scoped lifetime. You can reset the allocator to 0 with `reset_temp_memory()`. The temp allocator cannot free memory, but has `mark()` and `restore()` to push and pop chunks off the allocator stack. 
@@ -66,8 +69,7 @@ void os_exit(u8 status);                         // Exit program with status. Fl
 void os_write_out(u8 *bytes, u64 length);        // Write bytes to standard output. 
 void os_write_err(u8 *bytes, u64 length);        // Write bytes to standard error output. 
 ByteArray os_read_input(u8 *buffer, u64 max_length); // Returns bytes read from standard input, with the bytes pointer pointing to the given buffer. Returns ERROR_BYTE_ARRAY on failed read. 
-ByteArray os_read_input_all(Allocator a, u64 max_length); // Returns bytes read from standard input, allocating a byte array using the given allocator. Returns ERROR_BYTE_ARRAY on allocation fail or failed read. 
+ByteArray os_read_all_input(Allocator a, u64 max_length); // Returns bytes read from standard input, allocating a byte array using the given allocator. Returns ERROR_BYTE_ARRAY on allocation fail or failed read. 
 
 // Files
 typedef struct File;                             // File 
-```
