@@ -153,6 +153,4 @@ int main()
     run(String);
     run(Allocation);
     run(StringBuilder);
-
-    return 0;
 }

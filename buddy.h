@@ -226,7 +226,7 @@ void os_write_err(u8 *bytes, u64 length);
 ByteArray os_read_input(u8 *buffer, u64 max_length);
 // Returns bytes read from standard input, allocating a byte array using the
 // given allocator. Returns ERROR_BYTE_ARRAY on allocation fail or failed read.
-ByteArray os_read_all_input(Allocator a, u64 max_length);
+ByteArray os_read_all_input(Allocator a);
 
 // MARK: Files
 

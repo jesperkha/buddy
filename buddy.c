@@ -1,7 +1,8 @@
 #include "buddy.h"
 
-#include <stdlib.h>
+#include <malloc.h> // Temporary for heap alloc
 
+#include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
 
@@ -45,6 +46,11 @@ typedef struct BlockHeader
     u64 signature;
     u64 size;
 } BlockHeader;
+
+BlockHeader *_get_block_header(void *p)
+{
+    return (BlockHeader*)((u8*)p - sizeof(BlockHeader));
+}
 
 void *alloc(Allocator a, u64 size)
 {
@@ -97,38 +103,38 @@ static void *temporary_allocator_proc(Allocator a, AllocatorMessage msg, u64 siz
         if ((_temp_alloc_head - _temp_alloc_buffer) + actual_size > TEMP_ALLOC_BUFSIZE)
             return NULL;
 
-        BlockHeader header = {
-            .signature = TEMP_BLOCK_SIGNATURE,
-            .size = size,
-        };
-
-        u8 *p = _temp_alloc_head;
-        copy_memory(p, &header, sizeof(BlockHeader));
+        BlockHeader *block = (BlockHeader*)_temp_alloc_head;
+        block->signature = TEMP_BLOCK_SIGNATURE;
+        block->size = size;
 
         _temp_alloc_head += actual_size;
-        return p + sizeof(BlockHeader);
+        return (u8*)block + sizeof(BlockHeader);
     }
 
     case ALLOCATOR_MSG_ZERO_ALLOC:
     {
-        void *p = temporary_allocator_proc(a, ALLOCATOR_MSG_ALLOC, size, NULL);
+        void *p = alloc(a, size);
         if (p == NULL)
             return p;
+
         zero_memory(p, size);
         return p;
     }
 
     case ALLOCATOR_MSG_REALLOC:
     {
-        void *p = temporary_allocator_proc(a, ALLOCATOR_MSG_ALLOC, size, NULL);
-        if (p == NULL)
-            return p;
-
-        BlockHeader *header = (BlockHeader *)((u8 *)old_ptr - sizeof(BlockHeader));
-        if (header->signature != TEMP_BLOCK_SIGNATURE)
+        if (old_ptr == NULL)
             return NULL;
 
-        copy_memory(p, old_ptr, header->size);
+        BlockHeader *block = _get_block_header(old_ptr);
+        if (block->signature != TEMP_BLOCK_SIGNATURE)
+            return NULL;
+
+        u8 *p = alloc(a, size);
+        if (p == NULL)
+            return NULL;
+
+        copy_memory(p, old_ptr, block->size);
         return p;
     }
 
@@ -229,7 +235,7 @@ static void *arena_allocator_proc(Allocator a, AllocatorMessage msg, u64 size, v
 
         block->size = size;
         block->signature = ARENA_BLOCK_SIGNATURE;
-        return (block + sizeof(BlockHeader));
+        return (u8*)block + sizeof(BlockHeader);
     }
 
     case ALLOCATOR_MSG_ZERO_ALLOC:
@@ -251,7 +257,7 @@ static void *arena_allocator_proc(Allocator a, AllocatorMessage msg, u64 size, v
         if (old_ptr == NULL)
             return NULL;
 
-        BlockHeader *block = (BlockHeader*)((u8*)old_ptr - sizeof(BlockHeader));
+        BlockHeader *block = _get_block_header(old_ptr);
         if (block->signature != ARENA_BLOCK_SIGNATURE)
             return NULL;
 
@@ -563,10 +569,47 @@ ByteArray os_read_input(u8 *buffer, u64 max_length)
     };
 }
 
-ByteArray os_read_all_input(Allocator a, u64 max_length)
+ByteArray os_read_all_input(Allocator a)
 {
-    // TODO: os_read_input_all
-    return (ByteArray){0};
+    u64 size = 2;
+
+    // Remaining space after the text already read in
+    u64 readable_size = size;
+
+    u8 *buffer = alloc(a, size);
+    u8 *offset = buffer; // Where to read into
+
+    // [ xxxx---- ]
+    //   ^ buffer
+    //       ^ offset
+    //       ---- readable_size
+    //   xxxx---- size
+
+    while (true)
+    {
+        ByteArray arr = os_read_input(offset, readable_size);
+        if (arr.err)
+            return arr;
+
+        if (arr.length < readable_size)
+            return (ByteArray){
+                .err = false,
+                .bytes = buffer,
+                .length = size,
+            };
+
+        u64 new_size = size * 2;
+        buffer = alloc_realloc(a, buffer, new_size);
+        if (buffer == NULL)
+            return ERROR_BYTE_ARRAY;
+
+        offset = buffer + size;
+        size = new_size;
+        readable_size = size/2;
+    }
+
+    panic("os_read_all_input: unreachable");
+    return ERROR_BYTE_ARRAY;
 }
 
 void _os_flush_output()
@@ -576,9 +619,24 @@ void _os_flush_output()
     write(STDOUT_FILENO, "", 0);
 }
 
+void _os_flush_input()
+{
+    char buffer[64];
+
+    // Set stdin to non-blocking mode
+    int flags = fcntl(STDIN_FILENO, F_GETFL);
+    fcntl(STDIN_FILENO, F_SETFL, flags | O_NONBLOCK);
+
+    while (read(STDIN_FILENO, buffer, sizeof(buffer)) > 0);
+
+    // Restore blocking mode
+    fcntl(STDIN_FILENO, F_SETFL, flags);
+}
+
 void os_exit(u8 status)
 {
     _os_flush_output();
+    _os_flush_input();
     _exit(status);
 }
 
