@@ -230,14 +230,41 @@ ByteArray os_read_all_input(Allocator a);
 
 // MARK: Files
 
+// Filepath
+typedef struct Filepath
+{
+    Allocator a;
+    String string;
+} Filepath;
+
+// TODO: implement path stuff
+
+// Get the path to root on the system.
+Filepath path_root();
+// Get the path to the home dir of the current user.
+Filepath path_home();
+// Make a copy of the path.
+Filepath path_copy(Filepath path);
+// Get the file name from the path.
+String path_get_filename(Filepath path);
+// Get the file extension from the path.
+String path_get_extension(Filepath path);
+// Go back one directory.
+void path_back_dir(Filepath path);
+// Append other to path.
+void path_append(Filepath path, Filepath other);
+// Creates a copy of the path formatted to a Windows path.
+Filepath path_to_windows(Filepath path);
+// Create a path by joining the cstring given arguments.
+Filepath path_join(u64 count, ...);
+
 // File
 typedef struct File
 {
-    Allocator allocator;
-    String name;
+    Filepath path;
 
     u64 size;
-    u64 size_on_disk; // Aligned to os page size
+    u64 size_on_disk; // Aligned to disk page size
 
     // permissions, path, date, ...
 

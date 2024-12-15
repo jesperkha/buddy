@@ -640,6 +640,8 @@ void os_exit(u8 status)
     _exit(status);
 }
 
+// File os_open_file(FilePath path)
+
 void println(char *s)
 {
     assert_not_null(s, "print_cstr: s is NULL");
@@ -662,4 +664,3 @@ void println(char *s)
 //
 // Time: now, add, format, difference
 
-//#endif
