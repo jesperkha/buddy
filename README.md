@@ -9,7 +9,7 @@ The C library that treats you like a friend.
 - [ ] Strings (90%)
 - [x] SringBuilder
 - [ ] Filepath
-- [x] Allocator
+- [ ] Allocator (missing heap)
 - [x] Arena
 - [x] Standard I/O
 - [ ] Math
