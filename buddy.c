@@ -2,7 +2,6 @@
 
 #include <malloc.h> // Temporary for heap alloc
 
-#include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
 
