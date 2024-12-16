@@ -23,12 +23,10 @@ typedef u64 uptr;
 
 // MARK: Common
 
-// Zeros out memory. Size is in BYTES.
+// Zeroes out memory. Size is in BYTES.
 void zero_memory(void *p, u64 size);
 // Copies memory from source to dest. Size is in BYTES.
 void copy_memory(void *dest, void *source, u64 size);
-
-// TITLE: Memory
 
 // MARK: Allocators
 
@@ -41,10 +39,9 @@ typedef enum AllocatorMessage
 } AllocatorMessage;
 
 // The allocator is a generic structure with an internal allocation process.
-// Some functions take an allocator as an argument to give the user mote control
+// Some functions take an allocator as an argument to give the user more control
 // over how memory gets allocated and used in the program. Most allocators have
-// a `get_x_allocator` function. You can read more about how they work and what
-// they are used for below.
+// a `get_x_allocator` function.
 typedef struct Allocator
 {
     void *data;
@@ -89,7 +86,7 @@ void *temp_zero_alloc(u64 size);
 // Reallocates to new size. Does not free the original memory.
 void *temp_realloc(void *p, u64 size);
 // Create a mark in the temporary allocator that can be returned to later.
-// This should be used for allocations that dont leave the current scope.
+// This should be used for allocations that don't leave the current scope.
 // Returns the mark ID, restore with `temo_restore_mark()`.
 u64 temp_mark();
 // Restores to mark ID. Any memory allocated after the mark will be discarded.
@@ -116,9 +113,9 @@ void *arena_zero_alloc(Arena *a, u64 size);
 // Get an allocator using the given arena.
 Allocator get_arena_allocator(Arena *a);
 
-// TITLE: Strings
-
 // MARK: String
+
+// TODO: Make all strings be null terminated ffs
 
 // Strings are simply a pointer with a length and an error value. There is no
 // NULL terminator. When using string functions, they may set err=true if
@@ -203,8 +200,6 @@ bool str_builder_append_char(StringBuilder *sb, char c);
 // Returns the string builder as a string.
 String str_builder_to_string(StringBuilder *sb);
 
-// TITLE: Formatting
-//
 // Convert signed integer to string.
 String int_to_string(i64 n);
 // Convert unsigned integer to string.
@@ -221,8 +216,6 @@ String fmt(const char *format, ...);
 void out(const char *text, ...);
 // Same as out but with the appended newline.
 void outf_no_newline(const char *format, ...);
-
-// TITLE: OS
 
 // MARK: IO
 
