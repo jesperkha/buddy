@@ -1,15 +1,13 @@
-#include <stdio.h>
-
-#define BUDDY_IMPLEMENTATION
 #include "buddy.h"
+#include <stdlib.h> // NULL
 
 // Military grade testing suite
 
-#define log(m) printf("TEST: -- " m "\n")
-#define title(m) printf("TEST: " m "\n")
+#define log(m) out("TEST: -- " m)
+#define title(m) out("TEST: " m)
 #define fail(m)                        \
     {                                  \
-        title("   >>> FAIL: " m "\n"); \
+        title("   >>> FAIL: " m); \
         return false;                  \
     }
 #define assert(v, m) \
@@ -128,7 +126,7 @@ test(String, {
 test(StringBuilder, {
 {
     log("string builder append");
-    StringBuilder sb = str_builder_new(get_temporary_allocator(), 100);
+    StringBuilder sb = str_builder_new(get_temporary_allocator());
     assert(!sb.err, "Expected init success");
     assert(str_builder_append_cstr(&sb, "Hello "), "Expected success");
     assert(str_builder_append_cstr(&sb, "world!"), "Expected success");
@@ -138,7 +136,7 @@ test(StringBuilder, {
 }
 {
     log("string builder realloc");
-    StringBuilder sb = str_builder_new(get_temporary_allocator(), 13);
+    StringBuilder sb = str_builder_new(get_temporary_allocator());
     assert(!sb.err, "Expected init success");
     assert(str_builder_append_cstr(&sb, "Hello world! "), "Expected success");
     assert(str_builder_append_cstr(&sb, "I have twelve dogs."), "Expected success");
@@ -147,6 +145,8 @@ test(StringBuilder, {
     assert(str_equal(expect, str_builder_to_string(&sb)), "Expected equal");
 }
 })
+
+// TODO: testing for fmt
 
 int main()
 {

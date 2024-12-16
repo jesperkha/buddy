@@ -27,8 +27,6 @@ typedef u64 uptr;
 void zero_memory(void *p, u64 size);
 // Copies memory from source to dest. Size is in BYTES.
 void copy_memory(void *dest, void *source, u64 size);
-// Print NULL terminated string to stdout.
-void println(char *s);
 
 // TITLE: Memory
 
@@ -136,7 +134,7 @@ typedef struct String
 #define ERROR_STRING ((String){.s = NULL, .length = 0, .err = true})
 
 // Returns the byte length of a NULL-terminated C string.
-uint cstr_len(char *s);
+uint cstr_len(const char *s);
 // Allocates a new string using the temporary allocator. See `str_alloc` to use
 // a custom allocator. Returns ERROR_STRING if allocation fails or s is NULL.
 String str_temp(char *s);
@@ -152,6 +150,8 @@ String str_view(String s, uint start, uint end);
 // Returns true if both strings are equal. Returns false if not, or if one has
 // an error.
 bool str_equal(String a, String b);
+// Returns true if both strings are equal.
+bool cstr_equal(char *a, char *b);
 // Returns count of character c in string s.
 uint str_count(String s, char c);
 // Converts the original string s to uppercase, returns the same string for
@@ -190,16 +190,37 @@ typedef struct StringBuilder
         .err = true,\
         })
 
-// Returns a new allocated string builder with the given max size. Returns
-// ERROR_STRING_BUILDER if allocation fails.
-StringBuilder str_builder_new(Allocator a, u64 size);
+// Returns a new allocated string builder. Returns ERROR_STRING_BUILDER if
+// allocation fails.
+StringBuilder str_builder_new(Allocator a);
 // Appends string to the builder. Returns true on success. Returns false if s
 // has an error or internal reallocation fails.
 bool str_builder_append(StringBuilder *sb, String s);
 // Same as `str_builder_append`.
 bool str_builder_append_cstr(StringBuilder *sb, char *s);
+// Appends character to string builder.
+bool str_builder_append_char(StringBuilder *sb, char c);
 // Returns the string builder as a string.
 String str_builder_to_string(StringBuilder *sb);
+
+// TITLE: Formatting
+//
+// Convert signed integer to string.
+String int_to_string(i64 n);
+// Convert unsigned integer to string.
+String uint_to_string(u64 n);
+
+// Create formatted string. Format is expected to be "{specifier}".
+// Valid specifiers are:
+//   s (null terminated string),
+//   S (string object),
+//   i8 -> i64,
+//   u8 -> u64,
+String fmt(const char *format, ...);
+// Print formatted string to standard out. Appends newline.
+void out(const char *text, ...);
+// Same as out but with the appended newline.
+void outf_no_newline(const char *format, ...);
 
 // TITLE: OS
 
@@ -237,6 +258,8 @@ typedef struct Filepath
     String string;
 } Filepath;
 
+/*
+ *
 // TODO: implement path stuff
 
 // Get the path to root on the system.
@@ -257,6 +280,8 @@ void path_append(Filepath path, Filepath other);
 Filepath path_to_windows(Filepath path);
 // Create a path by joining the cstring given arguments.
 Filepath path_join(u64 count, ...);
+
+*/
 
 // File
 typedef struct File

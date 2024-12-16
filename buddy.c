@@ -2,20 +2,23 @@
 
 #include <malloc.h> // Temporary for heap alloc
 
+#include <stdarg.h>
+#include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
 
 // MARK: Internal utils
 
-#define panic(msg)              \
-    {                           \
-        println("buddy: " msg); \
-        os_exit(1);             \
+#define panic(msg)          \
+    {                       \
+        out("buddy: " msg); \
+        os_exit(1);         \
     }
 
-// Root of all evil
+// Root of all evil, internal only
+// DO NOT USE FOR STRING LITERALS EVER
 #define _STRING(_s) \
-    (String) { .err = false, .s = s, .length = cstr_len(s) }
+    (String) { .err = false, .s = _s, .length = cstr_len(_s) }
 
 #define assert_not_null(_var, _msg) \
     {                               \
@@ -338,11 +341,11 @@ void heap_free(void *ptr)
 
 // MARK: String
 
-uint cstr_len(char *s)
+uint cstr_len(const char *s)
 {
     assert_not_null(s, "cstr_len: s is NULL");
     uint count = 0;
-    char *p = s;
+    const char *p = s;
     while (*p != 0)
     {
         p++;
@@ -447,6 +450,13 @@ bool str_equal(String a, String b)
     return true;
 }
 
+bool cstr_equal(char *a, char *b)
+{
+    assert_not_null(a, "cstr_equal: a is NULL");
+    assert_not_null(b, "cstr_equal: b is NULL");
+    return str_equal(_STRING(a), _STRING(b));
+}
+
 String str_replace_char(String s, char old, char new_c)
 {
     if (s.err)
@@ -482,8 +492,12 @@ String str_reverse(String s)
 
 // MARK: StringBuilder
 
-StringBuilder str_builder_new(Allocator a, u64 size)
+#define _STRINGBUILDER_START_SIZE 64
+
+StringBuilder str_builder_new(Allocator a)
 {
+    const u64 size = _STRINGBUILDER_START_SIZE;
+
     char *mem = (char*)alloc(a, size);
     if (mem == NULL)
         return ERROR_STRING_BUILDER;
@@ -528,6 +542,12 @@ bool str_builder_append_cstr(StringBuilder *sb, char *s)
 {
     assert_not_null(s, "str_builder_append_cstr: s is NULL");
     return str_builder_append(sb, _STRING(s));
+}
+
+bool str_builder_append_char(StringBuilder *sb, char c)
+{
+    char s[2] = {c, 0};
+    return str_builder_append_cstr(sb, s);
 }
 
 String str_builder_to_string(StringBuilder *sb)
@@ -639,27 +659,139 @@ void os_exit(u8 status)
     _exit(status);
 }
 
-// File os_open_file(FilePath path)
-
-void println(char *s)
+static String _number_to_string(u64 n, bool sign)
 {
-    assert_not_null(s, "print_cstr: s is NULL");
-    os_write_out((u8 *)s, cstr_len(s));
-    os_write_out((u8 *)"\n", 1);
+    char number[21]; // u64 max is 20 digits
+    zero_memory(number, 16);
+
+    int i;
+    for (i = 0; n > 0 && i < 20; i++)
+    {
+        u8 diff = n % 10;
+        number[i] = (char)(diff + 48);
+        n /= 10;
+    }
+
+    if (sign)
+        number[i] = '-';
+
+    String result = str_temp(number);
+    str_reverse(result);
+    return result;
 }
 
-// String: split, find, dup, trim, iter, concat, StringBuilder, StringArray
-//
-// Path: append, root, home, backDir, toString, toWindows, to absolute,
-// getFilename, getFileExtension
-//
-// File: open, close, read, write, append, view, toString, copy
-//
-// Alloc: alloc, free, realloc, view, temp, page
-//
-// print, format, print_error, log
-//
-// input, char, string, raw term input
-//
-// Time: now, add, format, difference
+String int_to_string(i64 n)
+{
+    bool sign = n < 0;
+    if (n < 0) n *= -1;
+    return _number_to_string(n, sign);
+}
+
+String uint_to_string(u64 n)
+{
+    return _number_to_string(n, false);
+}
+
+static void _append_specifier(StringBuilder *sb, char *spec, va_list list)
+{
+    // String
+    if (cstr_equal(spec, "s"))
+        str_builder_append_cstr(sb, va_arg(list, char*));
+    else if (cstr_equal(spec, "S"))
+        str_builder_append(sb, va_arg(list, String));
+
+    // Signed int
+    else if (cstr_equal(spec, "i8"))
+        str_builder_append(sb, int_to_string((i8)va_arg(list, i64)));
+    else if (cstr_equal(spec, "i16"))
+        str_builder_append(sb, int_to_string((i16)va_arg(list, i64)));
+    else if (cstr_equal(spec, "i32"))
+        str_builder_append(sb, int_to_string((i32)va_arg(list, i64)));
+    else if (cstr_equal(spec, "i64"))
+        str_builder_append(sb, int_to_string((i64)va_arg(list, i64)));
+
+    // Unsigned int
+    else if (cstr_equal(spec, "u8"))
+        str_builder_append(sb, int_to_string((u8)va_arg(list, u64)));
+    else if (cstr_equal(spec, "u16"))
+        str_builder_append(sb, int_to_string((u16)va_arg(list, u64)));
+    else if (cstr_equal(spec, "u32"))
+        str_builder_append(sb, int_to_string((u32)va_arg(list, u64)));
+    else if (cstr_equal(spec, "u64"))
+        str_builder_append(sb, int_to_string((u64)va_arg(list, u64)));
+
+    // Unknown specifier
+    else
+    {
+        str_builder_append_char(sb, '{');
+        str_builder_append_cstr(sb, spec);
+        str_builder_append_char(sb, '}');
+    }
+}
+
+#define _MAX_SPECIFIER 8
+
+String _fmt(const char *format, va_list args)
+{
+    assert_not_null(format, "fmt: format is NULL");
+
+    StringBuilder sb = str_builder_new(get_temporary_allocator());
+    String fmt_s = _STRING((char*)format);
+
+    for (int i = 0; i < fmt_s.length; i++)
+    {
+        char c = fmt_s.s[i];
+        if (c != '{')
+        {
+            str_builder_append_char(&sb, c);
+            continue;
+        }
+
+        i++; // Skip opening brace
+
+        char spec[_MAX_SPECIFIER];
+        zero_memory(spec, _MAX_SPECIFIER);
+
+        // Extract word from {  }
+        int j = 0;
+        while (i < fmt_s.length && j < _MAX_SPECIFIER && fmt_s.s[i] != '}')
+            spec[j++] = fmt_s.s[i++];
+
+        _append_specifier(&sb, spec, args);
+    }
+
+    return str_builder_to_string(&sb);
+}
+
+String fmt(const char *format, ...)
+{
+    va_list args;
+    va_start(args, format);
+    String f = _fmt(format, args);
+    va_end(args);
+    return f;
+}
+
+void out(const char *format, ...)
+{
+    va_list args;
+    va_start(args, format);
+
+    String output = _fmt(format, args);
+    os_write_out((u8*)output.s, output.length);
+    os_write_out((u8*)"\n", 1);
+
+    va_end(args);
+}
+
+void out_no_newline(const char *format, ...)
+{
+    va_list args;
+    va_start(args, format);
+
+    String output = _fmt(format, args);
+    os_write_out((u8*)output.s, output.length);
+
+    va_end(args);
+}
 
