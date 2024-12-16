@@ -205,17 +205,17 @@ String int_to_string(i64 n);
 // Convert unsigned integer to string.
 String uint_to_string(u64 n);
 
-// Create formatted string. Format is expected to be "{specifier}".
-// Valid specifiers are:
+// Create formatted string. Valid specifiers are:
 //   s (null terminated string),
 //   S (string object),
 //   i8 -> i64,
 //   u8 -> u64,
+// Example: fmt("Name: {s}, Age: {u32}", "John", 42);
 String fmt(const char *format, ...);
 // Print formatted string to standard out. Appends newline.
 void out(const char *text, ...);
-// Same as out but with the appended newline.
-void outf_no_newline(const char *format, ...);
+// Same as out but without the appended newline.
+void out_no_newline(const char *format, ...);
 
 // MARK: IO
 
