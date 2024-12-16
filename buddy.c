@@ -42,7 +42,7 @@ void copy_memory(void *dest, void *source, u64 size)
 }
 
 // MARK: Allocator
-//
+
 typedef struct BlockHeader
 {
     u64 signature;
@@ -172,7 +172,6 @@ void *temp_realloc(void *p, u64 size)
     Allocator a = get_temporary_allocator();
     return alloc_realloc(a, p, size);
 }
-
 
 u64 temp_mark()
 {
