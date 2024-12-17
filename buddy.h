@@ -8,6 +8,19 @@
 
 #define TEMP_ALLOC_BUFSIZE MB(8)
 
+#if defined(__linux__)
+    #define OS_LINUX
+    #define OS_NAME "linux"
+#elif defined(_WIN32) || defined(_WIN64)
+    #define OS_WINDOWS
+    #define OS_NAME "windows"
+    #error "windows is not currently supported by buddy"
+#else
+    #define OS_UNKNOWN
+    #define OS_NAME "unknown"
+    #error "OS is unknown and therefore not supported by buddy"
+#endif
+
 typedef unsigned char u8;
 typedef unsigned short u16;
 typedef unsigned int u32;
@@ -139,6 +152,10 @@ String str_alloc(Allocator a, String s);
 // Allocates and returns a copy of the string using allocator. Returns
 // ERROR_STRING if allocation fails.
 String str_alloc_cstr(Allocator a, char *s);
+// Returns a copy of the string allocated using temporary allocator.
+String str_copy(String s);
+// Returns a copy of the string allocated with a.
+String str_copy_alloc(Allocator a, String s);
 // Returns a string view of the original string. Returns ERROR_STRING if the
 // range is out of bounds or the original string has an error.
 String str_view(String s, uint start, uint end);
@@ -217,6 +234,10 @@ void out_no_newline(const char *format, ...);
 
 // MARK: IO
 
+// Returns username of currently logged in user. Returns ERROR_STRING
+// if username couldnt be retreived.
+String get_username(void);
+
 // Array of bytes with length.
 typedef struct ByteArray
 {
@@ -242,42 +263,28 @@ ByteArray os_read_all_input(Allocator a);
 
 // MARK: Files
 
-// Filepath
-typedef struct Filepath
-{
-    Allocator a;
-    String string;
-} Filepath;
-
-/*
- *
-// TODO: implement path stuff
-
 // Get the path to root on the system.
-Filepath path_root();
+String path_root();
 // Get the path to the home dir of the current user.
-Filepath path_home();
-// Make a copy of the path.
-Filepath path_copy(Filepath path);
-// Get the file name from the path.
-String path_get_filename(Filepath path);
+String path_home();
+// Get the file name from the path. Returns ERROR_STRING if path is malformed.
+String path_get_filename(String path);
 // Get the file extension from the path.
-String path_get_extension(Filepath path);
+String path_get_extension(String path);
 // Go back one directory.
-void path_back_dir(Filepath path);
-// Append other to path.
-void path_append(Filepath path, Filepath other);
-// Creates a copy of the path formatted to a Windows path.
-Filepath path_to_windows(Filepath path);
-// Create a path by joining the cstring given arguments.
-Filepath path_join(u64 count, ...);
+void path_back_dir(String path);
+// Append other to path. Returns ERROR_STRING if either is a malformed path.
+void path_append(String path, String other);
+// Replaces forward slash with backslash in the original string. Returns same
+// string for convenience.
+String path_to_windows(String path);
+// Replaces backslash with forward slash in the original string. Returns same
+// string for convenience.
+String path_to_unix(String path);
 
-*/
-
-// File
 typedef struct File
 {
-    Filepath path;
+    String path;
 
     u64 size;
     u64 size_on_disk; // Aligned to disk page size

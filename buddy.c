@@ -381,6 +381,16 @@ String str_temp(char *s)
     return str_alloc_cstr(get_temporary_allocator(), s);
 }
 
+String str_copy(String s)
+{
+    return str_alloc(get_temporary_allocator(), s);
+}
+
+String str_copy_alloc(Allocator a, String s)
+{
+    return str_alloc(a, s);
+}
+
 String str_alloc(Allocator a, String s)
 {
     if (s.err)
@@ -815,4 +825,40 @@ void out_no_newline(const char *format, ...)
 
     va_end(args);
 }
+
+// MARK: Path
+
+String get_username(void)
+{
+    char *uname = getlogin();
+    if (uname == NULL)
+        return ERROR_STRING;
+    return str_temp(uname);
+}
+
+String path_root(void)
+{
+    return str_temp("/");
+}
+
+String path_home(void)
+{
+    return fmt("/home/{S}", get_username());
+}
+
+String path_to_windows(String path)
+{
+    return str_replace_char(path, '/', '\\');
+}
+
+String path_to_unix(String path)
+{
+    return str_replace_char(path, '\\', '/');
+}
+
+// TODO: more path stuff
+String path_get_filename(String path);
+String path_get_extension(String path);
+void path_back_dir(String path);
+void path_append(String path, String other);
 
