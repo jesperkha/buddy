@@ -115,12 +115,10 @@ Allocator get_arena_allocator(Arena *a);
 
 // MARK: String
 
-// TODO: Make all strings be null terminated ffs
-
-// Strings are simply a pointer with a length and an error value. There is no
-// NULL terminator. When using string functions, they may set err=true if
-// something went wrong. This allows future string methods to return gracefully
-// on error, and you just have to check the final string result for an error.
+// Strings are simply a pointer with a length and an error value. When using
+// string functions, they may set err=true if something went wrong. This allows
+// future string methods to return gracefully on error, and you just have to
+// check the final string result for an error.
 typedef struct String
 {
     char *s;

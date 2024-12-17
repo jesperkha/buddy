@@ -386,11 +386,13 @@ String str_alloc(Allocator a, String s)
     if (s.err)
         return ERROR_STRING;
 
-    char *mem = (char*)alloc(a, s.length);
+    char *mem = (char*)alloc(a, s.length+1);
     if (mem == NULL)
         return ERROR_STRING;
 
     copy_memory(mem, s.s, s.length);
+    s.s[s.length] = 0; // Make sure its null termiated
+
     return (String){
         .s = mem,
         .length = s.length,
@@ -409,6 +411,8 @@ String str_alloc_cstr(Allocator a, char *s)
         return ERROR_STRING;
 
     copy_memory(mem, s, len);
+    mem[len] = 0; // Make sure is null termiated
+
     return (String){
         .s = mem,
         .length = len,
@@ -569,6 +573,7 @@ bool str_builder_append_char(StringBuilder *sb, char c)
 String str_builder_to_string(StringBuilder *sb)
 {
     assert_not_null(sb, "str_builder_to_string: sb is NULL");
+    str_builder_append_char(sb, 0); // Null terminator
     return (String){
         .s = sb->mem,
         .length = sb->length,
