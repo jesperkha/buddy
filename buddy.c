@@ -92,6 +92,12 @@ void reset_temp_memory(void)
     _temp_alloc_head = _temp_alloc_buffer;
 }
 
+// Align pointer to next 8 byte interval
+u8 *_align_to_8bytes(u8 *ptr)
+{
+    return ptr + (8 - ((u64)ptr % 8));
+}
+
 // Temp memory allocation using global buffer. Does not support free as this
 // doesnt really make sense for a temporary allocator. Does not free old memory
 // on reallocation. Change initial buffer size by setting TEMP_ALLOC_BUFSIZE.
@@ -105,11 +111,15 @@ static void *temporary_allocator_proc(Allocator a, AllocatorMessage msg, u64 siz
         if ((u64)(_temp_alloc_head - _temp_alloc_buffer) + actual_size > TEMP_ALLOC_BUFSIZE)
             return NULL;
 
-        BlockHeader *block = (BlockHeader*)_temp_alloc_head;
+        // Get and align pointer
+        u8 *head = _temp_alloc_head;
+        head = _align_to_8bytes(head);
+        _temp_alloc_head = head + actual_size;
+
+        BlockHeader *block = (BlockHeader*)head;
         block->signature = TEMP_BLOCK_SIGNATURE;
         block->size = size;
 
-        _temp_alloc_head += actual_size;
         return (u8*)block + sizeof(BlockHeader);
     }
 
