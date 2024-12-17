@@ -15,7 +15,7 @@
         fail(m);
 #define run(name) (test_##name)();
 #define test(name, body) \
-    bool test_##name()   \
+    bool test_##name(void)   \
     {                    \
         title(#name);    \
         body;            \
@@ -42,7 +42,7 @@ test(Allocation, {
     u64 size = TEMP_ALLOC_BUFSIZE - 128; // Size of header
     u8 *p = temp_zero_alloc(size);
     assert(p != NULL, "Expected valid poiner");
-    for (int i = 0; i < size; i++)
+    for (u64 i = 0; i < size; i++)
         assert(p[i] == 0, "Expected zeroed memory");
 
     reset_temp_memory();
@@ -148,7 +148,7 @@ test(StringBuilder, {
 
 // TODO: testing for fmt
 
-int main()
+int main(void)
 {
     run(String);
     run(Allocation);

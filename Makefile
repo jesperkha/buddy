@@ -1,5 +1,5 @@
 # Run tests
 all:
 	mkdir -p bin
-	gcc -Wall -Werror -Wpedantic -std=c99 test.c buddy.c -o bin/test
+	clang -Wall -Wextra -Wpedantic -Werror -Wshadow -Wconversion -Wunreachable-code -fsanitize=undefined -fsanitize=address buddy.c test.c -o bin/test
 	./bin/test

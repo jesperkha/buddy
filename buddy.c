@@ -29,7 +29,7 @@
 void zero_memory(void *p, u64 size)
 {
     assert_not_null(p, "zero_memory: p is NULL");
-    for (int i = 0; i < size; i++)
+    for (u64 i = 0; i < size; i++)
         ((u8 *)p)[i] = 0;
 }
 
@@ -37,7 +37,7 @@ void copy_memory(void *dest, void *source, u64 size)
 {
     assert_not_null(dest, "copy_memory: destination is NULL");
     assert_not_null(source, "copy_memory: source is NULL");
-    for (int i = 0; i < size; i++)
+    for (u64 i = 0; i < size; i++)
         ((u8 *)dest)[i] = ((u8 *)source)[i];
 }
 
@@ -87,7 +87,7 @@ void alloc_free(Allocator a, void *p)
 u8 _temp_alloc_buffer[TEMP_ALLOC_BUFSIZE];
 u8 *_temp_alloc_head = _temp_alloc_buffer;
 
-void reset_temp_memory()
+void reset_temp_memory(void)
 {
     _temp_alloc_head = _temp_alloc_buffer;
 }
@@ -102,7 +102,7 @@ static void *temporary_allocator_proc(Allocator a, AllocatorMessage msg, u64 siz
     case ALLOCATOR_MSG_ALLOC:
     {
         u64 actual_size = size + sizeof(BlockHeader);
-        if ((_temp_alloc_head - _temp_alloc_buffer) + actual_size > TEMP_ALLOC_BUFSIZE)
+        if ((u64)(_temp_alloc_head - _temp_alloc_buffer) + actual_size > TEMP_ALLOC_BUFSIZE)
             return NULL;
 
         BlockHeader *block = (BlockHeader*)_temp_alloc_head;
@@ -148,7 +148,7 @@ static void *temporary_allocator_proc(Allocator a, AllocatorMessage msg, u64 siz
     return NULL;
 }
 
-Allocator get_temporary_allocator()
+Allocator get_temporary_allocator(void)
 {
     Allocator a;
     a.proc = temporary_allocator_proc;
@@ -173,9 +173,9 @@ void *temp_realloc(void *p, u64 size)
     return alloc_realloc(a, p, size);
 }
 
-u64 temp_mark()
+u64 temp_mark(void)
 {
-    return _temp_alloc_head - _temp_alloc_buffer;
+    return (u64)(_temp_alloc_head - _temp_alloc_buffer);
 }
 
 void temp_restore_mark(u64 id)
@@ -290,6 +290,8 @@ Allocator get_arena_allocator(Arena *a)
 
 static void *heap_allocator_proc(Allocator a, AllocatorMessage msg, u64 size, void *old_ptr)
 {
+    (void)a; // Unused param
+
     switch (msg)
     {
     case ALLOCATOR_MSG_ALLOC:
@@ -310,7 +312,7 @@ static void *heap_allocator_proc(Allocator a, AllocatorMessage msg, u64 size, vo
     return NULL;
 }
 
-Allocator get_heap_allocator()
+Allocator get_heap_allocator(void)
 {
     return (Allocator) {
         .data = NULL,
@@ -409,7 +411,7 @@ uint str_count(String s, char c)
     if (s.err)
         return 0;
     uint count = 0;
-    for (int i = 0; i < s.length; i++)
+    for (u64 i = 0; i < s.length; i++)
         if (s.s[i] == c)
             count++;
     return count;
@@ -423,7 +425,7 @@ String str_upper(String s)
 {
     if (s.err)
         return ERROR_STRING;
-    for (int i = 0; i < s.length; i++)
+    for (u64 i = 0; i < s.length; i++)
         if (IS_LOWER(s.s[i]))
             s.s[i] -= ASCII_CASE_DIFFERENCE;
     return s;
@@ -433,7 +435,7 @@ String str_lower(String s)
 {
     if (s.err)
         return ERROR_STRING;
-    for (int i = 0; i < s.length; i++)
+    for (u64 i = 0; i < s.length; i++)
         if (IS_UPPER(s.s[i]))
             s.s[i] += ASCII_CASE_DIFFERENCE;
     return s;
@@ -443,7 +445,7 @@ bool str_equal(String a, String b)
 {
     if (a.err || b.err || a.length != b.length)
         return false;
-    for (int i = 0; i < a.length; i++)
+    for (u64 i = 0; i < a.length; i++)
         if (a.s[i] != b.s[i])
             return false;
     return true;
@@ -460,7 +462,7 @@ String str_replace_char(String s, char old, char new_c)
 {
     if (s.err)
         return ERROR_STRING;
-    for (int i = 0; i < s.length; i++)
+    for (u64 i = 0; i < s.length; i++)
         if (s.s[i] == old)
             s.s[i] = new_c;
     return s;
@@ -468,6 +470,11 @@ String str_replace_char(String s, char old, char new_c)
 
 String str_replace_str(Allocator a, String s, String old, String new_s)
 {
+    (void)a;
+    (void)s;
+    (void)old;
+    (void)new_s;
+
     // TODO: str_replace_str()
     return ERROR_STRING;
 }
@@ -477,11 +484,11 @@ String str_reverse(String s)
     if (s.err)
         return ERROR_STRING;
 
-    uint l = s.length / 2;
-    for (int i = 0; i < l; i++)
+    u64 l = s.length / 2;
+    for (u64 i = 0; i < l; i++)
     {
         char left = s.s[i];
-        uint right_idx = s.length - i - 1;
+        u64 right_idx = s.length - i - 1;
         s.s[i] = s.s[right_idx];
         s.s[right_idx] = left;
     }
@@ -576,14 +583,14 @@ void os_write_err(u8 *bytes, u64 length)
 ByteArray os_read_input(u8 *buffer, u64 max_length)
 {
     assert_not_null(buffer, "os_read_input: buffer is NULL");
-    u64 len = read(STDIN_FILENO, buffer, max_length);
+    i64 len = read(STDIN_FILENO, buffer, max_length);
     if (len < 0)
         return ERROR_BYTE_ARRAY;
 
     return (ByteArray){
         .err = false,
         .bytes = buffer,
-        .length = len,
+        .length = (u64)len,
     };
 }
 
@@ -630,14 +637,14 @@ ByteArray os_read_all_input(Allocator a)
     return ERROR_BYTE_ARRAY;
 }
 
-void _os_flush_output()
+void _os_flush_output(void)
 {
     // Write nothing to flush
     write(STDERR_FILENO, "", 0);
     write(STDOUT_FILENO, "", 0);
 }
 
-void _os_flush_input()
+void _os_flush_input(void)
 {
     char buffer[64];
 
@@ -683,7 +690,7 @@ String int_to_string(i64 n)
 {
     bool sign = n < 0;
     if (n < 0) n *= -1;
-    return _number_to_string(n, sign);
+    return _number_to_string((u64)n, sign);
 }
 
 String uint_to_string(u64 n)
@@ -711,13 +718,13 @@ static void _append_specifier(StringBuilder *sb, char *spec, va_list list)
 
     // Unsigned int
     else if (cstr_equal(spec, "u8"))
-        str_builder_append(sb, int_to_string((u8)va_arg(list, u64)));
+        str_builder_append(sb, uint_to_string((u8)va_arg(list, u64)));
     else if (cstr_equal(spec, "u16"))
-        str_builder_append(sb, int_to_string((u16)va_arg(list, u64)));
+        str_builder_append(sb, uint_to_string((u16)va_arg(list, u64)));
     else if (cstr_equal(spec, "u32"))
-        str_builder_append(sb, int_to_string((u32)va_arg(list, u64)));
+        str_builder_append(sb, uint_to_string((u32)va_arg(list, u64)));
     else if (cstr_equal(spec, "u64"))
-        str_builder_append(sb, int_to_string((u64)va_arg(list, u64)));
+        str_builder_append(sb, uint_to_string((u64)va_arg(list, u64)));
 
     // Unknown specifier
     else
@@ -737,7 +744,7 @@ String _fmt(const char *format, va_list args)
     StringBuilder sb = str_builder_new(get_temporary_allocator());
     String fmt_s = _STRING((char*)format);
 
-    for (int i = 0; i < fmt_s.length; i++)
+    for (u64 i = 0; i < fmt_s.length; i++)
     {
         char c = fmt_s.s[i];
         if (c != '{')
