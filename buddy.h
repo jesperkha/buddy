@@ -6,21 +6,6 @@
 #define MB(n) (KB(n) * 1024ull)
 #define GB(n) (MB(n) * 1024ull)
 
-#define TEMP_ALLOC_BUFSIZE MB(8)
-
-#if defined(__linux__)
-    #define OS_LINUX
-    #define OS_NAME "linux"
-#elif defined(_WIN32) || defined(_WIN64)
-    #define OS_WINDOWS
-    #define OS_NAME "windows"
-    #error "windows is not currently supported by buddy"
-#else
-    #define OS_UNKNOWN
-    #define OS_NAME "unknown"
-    #error "OS is unknown and therefore not supported by buddy"
-#endif
-
 typedef unsigned char u8;
 typedef unsigned short u16;
 typedef unsigned int u32;
@@ -82,6 +67,8 @@ void *heap_realloc(void *old_ptr, u64 size);
 void heap_free(void *ptr);
 
 // MARK: Temporary Allocator
+
+#define TEMP_ALLOC_BUFSIZE MB(8)
 
 // The temporary allocator uses predefined global memory with size
 // TEMP_ALLOC_BUFSIZE, which is by default 4MB. This is used for short term
@@ -308,4 +295,19 @@ typedef struct File
     int fd;
     bool err;
 } File;
+
+#if defined(__linux__)
+    #define OS_LINUX
+    #define OS_NAME "linux"
+    #define os_is_linux() 1
+    #define os_is_windows() 0
+#elif defined(_WIN32) || defined(_WIN64)
+    #define OS_WINDOWS
+    #define OS_NAME "windows"
+    #define os_is_linux() 0
+    #define os_is_windows() 1
+    #error "windows is not currently supported by buddy"
+#else
+    #error "OS is unknown and therefore not supported by buddy"
+#endif
 

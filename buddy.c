@@ -894,20 +894,24 @@ String get_username(void)
 
 String path_root(void)
 {
-#if defined(OS_LINUX)
-    return str_temp("/");
-#elif defined(OS_WINDOWS)
-    return str_temp("C:\\");
-#endif
+    if (os_is_linux())
+        return str_temp("/");
+    else if (os_is_windows())
+        return str_temp("C:\\");
+
+    panic("path_root: unknown os type");
+    return ERROR_STRING;
 }
 
 String path_home(void)
 {
-#if defined(OS_LINUX)
-    return fmt("/home/{S}", get_username());
-#elif defined(OS_WINDOWS)
-    return fmt("C:\\Users\\{S}", get_username());
-#endif
+    if (os_is_linux())
+        return fmt("/home/{S}", get_username());
+    else if (os_is_windows())
+        return fmt("C:\\Users\\{S}", get_username());
+
+    panic("path_home: unknown os type");
+    return ERROR_STRING;
 }
 
 String path_to_windows(String path)
@@ -974,11 +978,10 @@ String path_append(String path, String other)
 
     if (!end_slash && !start_slash)
     {
-#if defined(OS_LINUX)
-        str_builder_append_char(&sb, '/');
-#elif define(OS_WINDOWS)
-        str_builder_append_char(&sb, '\\');
-#endif
+        if (os_is_linux())
+            str_builder_append_char(&sb, '/');
+        else if (os_is_windows())
+            str_builder_append_char(&sb, '\\');
     }
 
     str_builder_append(&sb, other);
