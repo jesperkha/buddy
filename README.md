@@ -1,27 +1,34 @@
 # buddy
 
-The C library that treats you like a friend.
+A friendly and modern extension of libc.
 
 ## Progress
 
 **Common**
 
-- [ ] Strings (90%)
+- [x] Strings
 - [x] SringBuilder
-- [ ] Filepath
-- [ ] Allocator (missing heap)
+- [x] Filepath
+- [x] Allocator
 - [x] Arena
 - [x] Standard I/O
 - [ ] Math
 - [ ] Time and date
-- [ ] List, Queue
-- [ ] HashMap, Set
 
 **OS**
 
 - [ ] Files
 - [ ] Threads
 - [ ] Device I/O
+
+**Data structures and algorithms**
+
+- [ ] List
+- [ ] Fast Array
+- [ ] Queue
+- [ ] Set
+- [ ] HashMap
+- [ ] Sorts
 
 **Environment**
 
