@@ -191,12 +191,12 @@ typedef struct StringBuilder
     bool err;
 } StringBuilder;
 
-#define ERROR_STRING_BUILDER ((StringBuilder){\
-        .size = 0,\
-        .length = 0,\
-        .mem = NULL, \
-        .err = true,\
-        })
+#define ERROR_STRING_BUILDER ((StringBuilder){ \
+        .size = 0,                             \
+        .length = 0,                           \
+        .mem = NULL,                           \
+        .err = true,                           \
+    })
 
 // Returns a new allocated string builder. Returns ERROR_STRING_BUILDER if
 // allocation fails.
@@ -281,18 +281,18 @@ String path_to_unix(String path);
 
 typedef struct File
 {
+    int fd;
     String path;
 
     u64 size;
     u64 size_on_disk; // Aligned to disk page size
 
-    // permissions, path, date, ...
+    // Date? Permissions?
 
     bool open;
     bool writeable;
     bool readable;
 
-    int fd;
     bool err;
 } File;
 
