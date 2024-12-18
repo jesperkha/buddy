@@ -352,6 +352,25 @@ void heap_free(void *ptr)
 
 // MARK: String
 
+String str_concat(Allocator a, String s1, String s2)
+{
+    if (s1.err || s2.err)
+        return ERROR_STRING;
+
+    char *ptr = alloc(a, s1.length + s2.length + 1);
+    if (ptr == NULL)
+        return ERROR_STRING;
+
+    copy_memory(ptr, s1.s, s1.length);
+    copy_memory(ptr + s1.length, s2.s, s2.length);
+
+    return (String){
+        .err = false,
+        .s = ptr,
+        .length = s1.length + s2.length,
+    };
+}
+
 uint cstr_len(const char *s)
 {
     assert_not_null(s, "cstr_len: s is NULL");
@@ -365,12 +384,13 @@ uint cstr_len(const char *s)
     return count;
 }
 
-String str_view(String s, uint start, uint end)
+String str_view(String s, u64 start, u64 end)
 {
-    if (s.err || start >= s.length || end >= s.length)
+    if (s.err || start >= s.length || end > s.length || start > end)
         return ERROR_STRING;
 
     return (String){
+        .err = false,
         .s = s.s + start,
         .length = end - start,
     };
@@ -518,6 +538,30 @@ String str_reverse(String s)
     }
 
     return s;
+}
+
+i64 str_find_char(String s, char c)
+{
+    if (s.err)
+        return -1;
+
+    for (i64 i = 0; (u64)i < s.length; i++)
+        if (s.s[i] == c)
+            return i;
+
+    return -1;
+}
+
+i64 str_find_char_reverse(String s, char c)
+{
+    if (s.err)
+        return -1;
+
+    for (i64 i = (i64)s.length-1; i >= 0; i--)
+        if (s.s[i] == c)
+            return i;
+
+    return -1;
 }
 
 // MARK: StringBuilder
@@ -805,6 +849,12 @@ String fmt(const char *format, ...)
 
 void out(const char *format, ...)
 {
+    if (format == NULL)
+    {
+        os_write_out((u8*)"(NULL)\n", 7);
+        return;
+    }
+
     va_list args;
     va_start(args, format);
 
@@ -817,6 +867,12 @@ void out(const char *format, ...)
 
 void out_no_newline(const char *format, ...)
 {
+    if (format == NULL)
+    {
+        os_write_out((u8*)"(NULL)", 6);
+        return;
+    }
+
     va_list args;
     va_start(args, format);
 
@@ -838,12 +894,20 @@ String get_username(void)
 
 String path_root(void)
 {
+#if defined(OS_LINUX)
     return str_temp("/");
+#elif defined(OS_WINDOWS)
+    return str_temp("C:\\");
+#endif
 }
 
 String path_home(void)
 {
+#if defined(OS_LINUX)
     return fmt("/home/{S}", get_username());
+#elif defined(OS_WINDOWS)
+    return fmt("C:\\Users\\{S}", get_username());
+#endif
 }
 
 String path_to_windows(String path)
@@ -856,9 +920,68 @@ String path_to_unix(String path)
     return str_replace_char(path, '\\', '/');
 }
 
-// TODO: more path stuff
-String path_get_filename(String path);
-String path_get_extension(String path);
-void path_back_dir(String path);
-void path_append(String path, String other);
+String path_get_filename(String path)
+{
+    i64 pos = str_find_char_reverse(path, '/');
+    if (pos == -1)
+        pos = str_find_char_reverse(path, '\\');
+    if (pos == -1)
+        pos = 0;
+
+    return str_view(path, (u64)pos+1, path.length);
+}
+
+String path_get_extension(String path)
+{
+    String filename = path_get_filename(path);
+    i64 pos = str_find_char_reverse(filename, '.');
+    if (pos == -1)
+        return ERROR_STRING;
+
+    return str_view(filename, (u64)pos+1, filename.length);
+}
+
+String path_back_dir(String path)
+{
+    i64 pos = str_find_char_reverse(path, '/');
+    if (pos == 1)
+        pos = str_find_char_reverse(path, '\\');
+
+    if (pos == -1)
+        return ERROR_STRING; // Edge case were path is current dir and
+                             // function should return ".." not handled.
+
+    if (pos == 0) // Return root
+        pos++;
+
+    return str_view(path, 0, (u64)pos);
+}
+
+String path_append(String path, String other)
+{
+    if (path.err || other.err)
+        return ERROR_STRING;
+
+    StringBuilder sb = str_builder_new(get_temporary_allocator());
+
+    bool end_slash = path.s[path.length-1] == '/' || path.s[path.length-1] == '\\';
+    bool start_slash = other.s[0] == '/' || other.s[0] == '\\';
+
+    if (end_slash && start_slash)
+        path.length--;
+
+    str_builder_append(&sb, path);
+
+    if (!end_slash && !start_slash)
+    {
+#if defined(OS_LINUX)
+        str_builder_append_char(&sb, '/');
+#elif define(OS_WINDOWS)
+        str_builder_append_char(&sb, '\\');
+#endif
+    }
+
+    str_builder_append(&sb, other);
+    return str_builder_to_string(&sb);
+}
 

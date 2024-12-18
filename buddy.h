@@ -156,9 +156,10 @@ String str_alloc_cstr(Allocator a, char *s);
 String str_copy(String s);
 // Returns a copy of the string allocated with a.
 String str_copy_alloc(Allocator a, String s);
-// Returns a string view of the original string. Returns ERROR_STRING if the
-// range is out of bounds or the original string has an error.
-String str_view(String s, uint start, uint end);
+// Returns a string view of the original string. The range is including start
+// and excluding end (string slice). Returns ERROR_STRING if the range is out
+// of bounds or the original string has an error.
+String str_view(String s, u64 start, u64 end);
 // Returns true if both strings are equal. Returns false if not, or if one has
 // an error.
 bool str_equal(String a, String b);
@@ -181,6 +182,14 @@ String str_replace_str(Allocator a, String s, String old, String new_s);
 // Reverses the original string. Returns same string for convenience. Returns
 // ERROR_STRING if s has an error.
 String str_reverse(String s);
+// Returns index of first occurance of c. Returns -1 if not found.
+i64 str_find_char(String s, char c);
+// Returns index of first occurance of c, searching backwards. Returns -1 if not
+// found.
+i64 str_find_char_reverse(String s, char c);
+// Concatinates s1 and s2, allocating with a. Returns ERROR_STRING if either has an
+// error or allocation fails.
+String str_concat(Allocator a, String s1, String s2);
 
 // MARK: StringBuilder
 
@@ -271,10 +280,11 @@ String path_home();
 String path_get_filename(String path);
 // Get the file extension from the path.
 String path_get_extension(String path);
-// Go back one directory.
-void path_back_dir(String path);
-// Append other to path. Returns ERROR_STRING if either is a malformed path.
-void path_append(String path, String other);
+// Go back one directory. Returns *substring* from original path or ERROR_STRING.
+String path_back_dir(String path);
+// Append other to path. Uses temporary allocator. Returns ERROR_STRING if
+// either is a malformed path.
+String path_append(String path, String other);
 // Replaces forward slash with backslash in the original string. Returns same
 // string for convenience.
 String path_to_windows(String path);
