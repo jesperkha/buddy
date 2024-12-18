@@ -271,7 +271,7 @@ String path_get_extension(String path);
 String path_back_dir(String path);
 // Append other to path. Uses temporary allocator. Returns ERROR_STRING if
 // either is a malformed path.
-String path_append(String path, String other);
+String path_concat(String path, String other);
 // Replaces forward slash with backslash in the original string. Returns same
 // string for convenience.
 String path_to_windows(String path);

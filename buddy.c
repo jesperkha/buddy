@@ -3,7 +3,6 @@
 #include <malloc.h> // Temporary for heap alloc
 
 #include <stdarg.h>
-#include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
 
@@ -961,7 +960,7 @@ String path_back_dir(String path)
     return str_view(path, 0, (u64)pos);
 }
 
-String path_append(String path, String other)
+String path_concat(String path, String other)
 {
     if (path.err || other.err)
         return ERROR_STRING;
