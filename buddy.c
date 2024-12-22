@@ -3,8 +3,10 @@
 #include <malloc.h> // Temporary for heap alloc
 
 #include <stdarg.h>
+#include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/stat.h>
 
 // MARK: Internal utils
 
@@ -586,29 +588,9 @@ StringBuilder str_builder_new(Allocator a)
 
 bool str_builder_append(StringBuilder *sb, String s)
 {
-    assert_not_null(sb, "str_builder_append: sb is NULL");
-    if (s.err || sb->err)
+    if (s.err)
         return false;
-
-    // Reallocate internal buffer on overflow
-    if (sb->length + s.length > sb->size)
-    {
-        u64 new_size = sb->size * 2;
-        // Resize until it fits the string
-        while (new_size < sb->size + s.length)
-            new_size *= 2;
-
-        char *new_mem = (char*)alloc_realloc(sb->a, sb->mem, new_size);
-        if (new_mem == NULL)
-            return false;
-
-        sb->mem = new_mem;
-        sb->size = new_size;
-    }
-
-    copy_memory(sb->mem + sb->length, s.s, s.length);
-    sb->length += s.length;
-    return true;
+    return str_builder_append_bytes(sb, (u8*)s.s, s.length);
 }
 
 bool str_builder_append_cstr(StringBuilder *sb, char *s)
@@ -619,8 +601,37 @@ bool str_builder_append_cstr(StringBuilder *sb, char *s)
 
 bool str_builder_append_char(StringBuilder *sb, char c)
 {
-    char s[2] = {c, 0};
-    return str_builder_append_cstr(sb, s);
+    u8 b = (u8)c;
+    return str_builder_append_bytes(sb, &b, 1);
+}
+
+bool str_builder_append_bytes(StringBuilder *sb, u8 *bytes, u64 length)
+{
+    assert_not_null(sb, "str_builder_append_bytes: sb is NULL");
+    assert_not_null(bytes, "str_builder_append_bytes: bytes is NULL");
+
+    if (sb->err)
+        return false;
+
+    // Reallocate internal buffer on overflow
+    if (sb->length + length > sb->size)
+    {
+        u64 new_size = sb->size * 2;
+        // Resize until it fits the string
+        while (new_size < sb->size + length)
+            new_size *= 2;
+
+        char *new_mem = (char*)alloc_realloc(sb->a, sb->mem, new_size);
+        if (new_mem == NULL)
+            return false;
+
+        sb->mem = new_mem;
+        sb->size = new_size;
+    }
+
+    copy_memory(sb->mem + sb->length, bytes, length);
+    sb->length += length;
+    return true;
 }
 
 String str_builder_to_string(StringBuilder *sb)
@@ -735,6 +746,9 @@ void os_exit(u8 status)
 
 static String _number_to_string(u64 n, bool sign)
 {
+    if (n == 0)
+        return str_temp("0");
+
     char number[21]; // u64 max is 20 digits
     zero_memory(number, 16);
 
@@ -766,6 +780,22 @@ String uint_to_string(u64 n)
     return _number_to_string(n, false);
 }
 
+static void _format_file(StringBuilder *sb, File f)
+{
+    str_builder_append_cstr(sb, "File {\n");
+    str_builder_append(sb, fmt("    .fd = {i32}\n", f.fd));
+    str_builder_append(sb, fmt("    .path = {S}\n", f.path));
+    str_builder_append(sb, fmt("    .size = {u64}\n", f.size));
+    str_builder_append(sb, fmt("    .size_on_disk = {u64}\n", f.size_on_disk));
+    str_builder_append(sb, fmt("    .open = {b}\n", f.open));
+    str_builder_append(sb, fmt("    .writeable = {b}\n", f.writeable));
+    str_builder_append(sb, fmt("    .readable = {b}\n", f.readable));
+    str_builder_append(sb, fmt("    .err = {b}\n", f.err));
+    str_builder_append_cstr(sb, "}\n");
+}
+
+// MARK: fmt
+
 static void _append_specifier(StringBuilder *sb, char *spec, va_list list)
 {
     // String
@@ -773,6 +803,21 @@ static void _append_specifier(StringBuilder *sb, char *spec, va_list list)
         str_builder_append_cstr(sb, va_arg(list, char*));
     else if (cstr_equal(spec, "S"))
         str_builder_append(sb, va_arg(list, String));
+
+    // Objects
+    else if (cstr_equal(spec, "B"))
+    {
+        ByteArray ba = va_arg(list, ByteArray);
+        str_builder_append_bytes(sb, ba.bytes, ba.length);
+    }
+    else if (cstr_equal(spec, "F"))
+        _format_file(sb, va_arg(list, File));
+
+    // Bool
+    else if (cstr_equal(spec, "b"))
+        va_arg(list, u32) > 0 ?
+            str_builder_append_cstr(sb, "true") :
+            str_builder_append_cstr(sb, "false");
 
     // Signed int
     else if (cstr_equal(spec, "i8"))
@@ -985,5 +1030,86 @@ String path_concat(String path, String other)
 
     str_builder_append(&sb, other);
     return str_builder_to_string(&sb);
+}
+
+File file_open_s(String path, FilePermission perm, bool create_if_absent, bool truncate)
+{
+    if (path.err)
+        return ERROR_FILE;
+
+    int o_flags = 0;
+
+    if (perm == PERM_READ)
+        o_flags |= O_RDONLY;
+    else if (perm == PERM_WRITE)
+        o_flags |= O_WRONLY;
+    else if (perm == PERM_READWRITE)
+        o_flags |= O_RDWR;
+    else if (perm == PERM_APPEND)
+        o_flags |= O_APPEND;
+
+    if (create_if_absent)
+        o_flags |= O_CREAT;
+    if (truncate)
+        o_flags |= O_TRUNC;
+
+    int fd = open(path.s, o_flags);
+    if (fd < 0)
+        return ERROR_FILE;
+
+    struct stat s;
+    if (stat(path.s, &s) != 0)
+        return ERROR_FILE;
+
+    File file = {
+        .fd = fd,
+        .path = path,
+
+        .size = (u64)s.st_size,
+        .size_on_disk = (u64)(s.st_blksize * s.st_blocks),
+
+        .open = true,
+        .writeable = perm == PERM_WRITE || perm == PERM_APPEND || perm == PERM_READWRITE,
+        .readable = perm == PERM_READWRITE || perm == PERM_READ,
+        .err = false,
+    };
+
+    return file;
+}
+
+File file_open(const char *path, FilePermission perm, bool create_if_absent, bool truncate)
+{
+    return file_open_s(str_temp((char*)path), perm, create_if_absent, truncate);
+}
+
+void file_close(File *f)
+{
+    if (f->err)
+        return;
+
+    close(f->fd);
+    f->open = false;
+    f->writeable = false;
+    f->readable = false;
+}
+
+ByteArray file_read(File f, Allocator a, u64 size)
+{
+    if (f.err)
+        return ERROR_BYTE_ARRAY;
+
+    u8 *buffer = alloc(a, size);
+    if (buffer == NULL)
+        return ERROR_BYTE_ARRAY;
+
+    ssize_t n = read(f.fd, buffer, size);
+    if (n < 0)
+        return ERROR_BYTE_ARRAY;
+
+    return (ByteArray){
+        .bytes = buffer,
+        .length = (u64)n,
+        .err = false,
+    };
 }
 

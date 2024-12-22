@@ -201,10 +201,24 @@ test(Path, {
 
 int main(void)
 {
+    /*
     run(String);
     run(Allocation);
     run(StringBuilder);
     run(Fmt);
     run(Path);
+    */
+
+    File f = file_open("Makefile", PERM_READ, false, false);
+    if (f.err)
+    {
+        out("File error");
+        return 1;
+    }
+
+    out("{F}", f);
+
+    file_close(&f);
+    return 0;
 }
 

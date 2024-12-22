@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdbool.h>
+#include <unistd.h>
 
 #define KB(n) (n * 1024ull)
 #define MB(n) (KB(n) * 1024ull)
@@ -206,6 +207,8 @@ StringBuilder str_builder_new(Allocator a);
 bool str_builder_append(StringBuilder *sb, String s);
 // Same as `str_builder_append`.
 bool str_builder_append_cstr(StringBuilder *sb, char *s);
+
+bool str_builder_append_bytes(StringBuilder *sb, u8 *bytes, u64 length);
 // Appends character to string builder.
 bool str_builder_append_char(StringBuilder *sb, char c);
 // Returns the string builder as a string.
@@ -217,10 +220,13 @@ String int_to_string(i64 n);
 String uint_to_string(u64 n);
 
 // Create formatted string. Valid specifiers are:
+//
 //   s (null terminated string),
-//   S (string object),
-//   i8 -> i64,
-//   u8 -> u64,
+//   S (String),
+//   B (ByteArray),
+//   i8, i16, i32, i64,
+//   u8, u16, u32, u64,
+//
 // Example: fmt("Name: {s}, Age: {u32}", "John", 42);
 String fmt(const char *format, ...);
 // Print formatted string to standard out. Appends newline.
@@ -279,9 +285,17 @@ String path_to_windows(String path);
 // string for convenience.
 String path_to_unix(String path);
 
+typedef enum FilePermission
+{
+    PERM_WRITE,
+    PERM_READ,
+    PERM_READWRITE,
+    PERM_APPEND,
+} FilePermission;
+
 typedef struct File
 {
-    int fd;
+    i32 fd;
     String path;
 
     u64 size;
@@ -295,6 +309,18 @@ typedef struct File
 
     bool err;
 } File;
+
+#define ERROR_FILE ((File){.err = true, .fd = -1, .size = 0, .open = false})
+
+// Open a file with the given permissions. Returns ERROR_FILE on error.
+File file_open(const char *path, FilePermission perm, bool create_if_absent, bool truncate);
+// Open a file with the given permissions. Returns ERROR_FILE on error.
+File file_open_s(String path, FilePermission perm, bool create_if_absent, bool truncate);
+// Close file. Sets booleans in file object.
+void file_close(File *f);
+// Read size bytes from file. Returns byte array with the contents. The length
+// may be different to size. Returns ERROR_BYTE_ARRAY on error.
+ByteArray file_read(File f, Allocator a, u64 size);
 
 #if defined(__linux__)
     #define OS_LINUX
