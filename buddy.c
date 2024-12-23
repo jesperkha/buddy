@@ -7,6 +7,12 @@
 
 #include <malloc.h> // Temporary for heap alloc
 
+#if defined(OS_LINUX)
+    #define PATH_SEP '/'
+#elif defined(OS_WINDOWS)
+    #define PATH_SEP '\\'
+#endif
+
 // MARK: Internal utils
 
 #define panic(msg)          \
@@ -1045,12 +1051,7 @@ String path_concat(String path, String other)
     str_builder_append(&sb, path);
 
     if (!end_slash && !start_slash)
-    {
-        if (os_is_linux())
-            str_builder_append_char(&sb, '/');
-        else if (os_is_windows())
-            str_builder_append_char(&sb, '\\');
-    }
+        str_builder_append_char(&sb, PATH_SEP);
 
     str_builder_append(&sb, other);
     return str_builder_to_string(&sb);
