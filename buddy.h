@@ -129,6 +129,21 @@ typedef struct String
 
 #define ERROR_STRING ((String){.s = NULL, .length = 0, .err = true})
 
+// Array of bytes with length.
+typedef struct ByteArray
+{
+    u8 *bytes;
+    u64 length;
+    bool err;
+} ByteArray;
+
+#define ERROR_BYTE_ARRAY ((ByteArray){.err = true, .length = 0, .bytes = NULL})
+
+// Convert byte array to string. Keeps original pointer.
+String bytes_to_str(ByteArray bytes);
+// Convert string to byte array. Keeps original pointer.
+ByteArray str_to_bytes(String s);
+
 // Returns the byte length of a NULL-terminated C string.
 uint cstr_len(const char *s);
 // Allocates a new string using the temporary allocator. See `str_alloc` to use
@@ -244,16 +259,6 @@ void out_no_newline(const char *format, ...);
 // if username couldnt be retreived.
 String get_username(void);
 
-// Array of bytes with length.
-typedef struct ByteArray
-{
-    u8 *bytes;
-    u64 length;
-    bool err;
-} ByteArray;
-
-#define ERROR_BYTE_ARRAY ((ByteArray){.err = true, .length = 0, .bytes = NULL})
-
 // Exit program with status. Flushes standard input and output.
 void os_exit(u8 status);
 // Write bytes to standard output.
@@ -328,6 +333,18 @@ ByteArray file_read(File f, Allocator a, u64 size);
 // Opens and reads file contents before closing. Returns ERROR_BYTE_ARRAY on
 // error.
 ByteArray file_read_all(const char *path, Allocator a);
+// Write bytes to file.
+void file_write(File f, u8 *bytes, u64 size);
+// Write bytes to file.
+void file_write_arr(File f, ByteArray bytes);
+// Write string to file.
+void file_write_str(File f, String s);
+// Opens file and writes bytes before closing. Truncates file and creates new
+// if it doesnt already exist.
+void file_write_all(const char *path, u8 *bytes, u64 length);
+// Opens file and appends bytes to end before closing. Creates new file if it
+// doesnt already exist.
+void file_append_all(const char *path, u8 *bytes, u64 length);
 
 #if defined(__linux__)
     #define OS_LINUX

@@ -358,6 +358,31 @@ void heap_free(void *ptr)
 
 // MARK: String
 
+ByteArray str_to_bytes(String s)
+{
+    if (s.err)
+        return ERROR_BYTE_ARRAY;
+
+    return (ByteArray){
+        .bytes = (u8*)s.s,
+        .length = s.length,
+        .err = false,
+    };
+}
+
+String bytes_to_str(ByteArray bytes)
+{
+    if (bytes.err)
+        return ERROR_STRING;
+
+    return (String){
+        .s = (char*)bytes.bytes,
+        .length = bytes.length,
+        .err = false,
+    };
+}
+
+
 String str_concat(Allocator a, String s1, String s2)
 {
     if (s1.err || s2.err)
@@ -1071,14 +1096,20 @@ File file_open_s(String path, FilePermission perm, bool create_if_absent, bool t
     else if (perm == PERM_READWRITE)
         o_flags |= O_RDWR;
     else if (perm == PERM_APPEND)
+    {
+        o_flags |= O_RDWR;
         o_flags |= O_APPEND;
+    }
 
     if (create_if_absent)
         o_flags |= O_CREAT;
     if (truncate)
         o_flags |= O_TRUNC;
 
-    int fd = open(path.s, o_flags);
+    // rw rw r
+    int file_mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH;
+
+    int fd = open(path.s, o_flags, file_mode);
     if (fd < 0)
         return ERROR_FILE;
 
@@ -1144,5 +1175,43 @@ ByteArray file_read_all(const char *path, Allocator a)
     ByteArray bytes = file_read(f, a, f.size);
     file_close(&f);
     return bytes;
+}
+
+void file_write(File f, u8 *bytes, u64 size)
+{
+    if (f.err || bytes == NULL)
+        return;
+
+    ssize_t n = write(f.fd, bytes, size);
+    if (n < 0)
+        return; // handle error
+}
+
+void file_write_arr(File f, ByteArray bytes)
+{
+    if (f.err || bytes.err)
+        return;
+    file_write(f, bytes.bytes, bytes.length);
+}
+
+void file_write_str(File f, String s)
+{
+    if (f.err || s.err)
+        return;
+    file_write(f, (u8*)s.s, s.length);
+}
+
+void file_write_all(const char *path, u8 *bytes, u64 length)
+{
+    File f = file_open(path, PERM_WRITE, true, true);
+    file_write(f, bytes, length);
+    file_close(&f);
+}
+
+void file_append_all(const char *path, u8 *bytes, u64 length)
+{
+    File f = file_open(path, PERM_APPEND, true, false);
+    file_write(f, bytes, length);
+    file_close(&f);
 }
 

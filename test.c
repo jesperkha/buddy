@@ -1,4 +1,6 @@
 #include "buddy.h"
+#include <errno.h>
+#include <stdio.h>
 #include <stdlib.h> // NULL
 
 // Military grade testing suite
@@ -209,7 +211,9 @@ int main(void)
     run(Path);
     */
 
-    ByteArray bytes = file_read_all("Makefile", get_temporary_allocator());
+    file_append_all("foo.txt", (u8*)"Hello\n", 6);
+
+    ByteArray bytes = file_read_all("foo.txt", get_temporary_allocator());
     out("{B}", bytes);
 
     return 0;
