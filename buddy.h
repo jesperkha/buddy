@@ -225,9 +225,9 @@ StringBuilder str_builder_new(Allocator a);
 // Appends string to the builder. Returns true on success. Returns false if s
 // has an error or internal reallocation fails.
 bool str_builder_append(StringBuilder *sb, String s);
-// Same as `str_builder_append`.
+// Appends null-termiated string to string builder.
 bool str_builder_append_cstr(StringBuilder *sb, char *s);
-
+// Appends bytes to string builder.
 bool str_builder_append_bytes(StringBuilder *sb, u8 *bytes, u64 length);
 // Appends character to string builder.
 bool str_builder_append_char(StringBuilder *sb, char c);
