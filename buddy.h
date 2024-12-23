@@ -107,6 +107,8 @@ typedef struct Arena
 
 // Allocates an arena with the given max size. Returns NULL on allocation fail.
 Arena *arena_new(Allocator a, u64 size);
+// Free arena allocated with given allocator.
+void free_arena(Arena *arena, Allocator a);
 // Allocates a region in the arena. Returns NULL if arena is full.
 void *arena_alloc(Arena *a, u64 size);
 // Same as `arena_alloc`, but zeroes out memory as well.
@@ -138,6 +140,11 @@ typedef struct ByteArray
 } ByteArray;
 
 #define ERROR_BYTE_ARRAY ((ByteArray){.err = true, .length = 0, .bytes = NULL})
+
+// Free string allocated with given allocator.
+void free_string(String s, Allocator a);
+// Free byte array allocated with given allocator.
+void free_bytes(ByteArray b, Allocator a);
 
 // Convert byte array to string. Keeps original pointer.
 String bytes_to_str(ByteArray bytes);
@@ -222,6 +229,8 @@ typedef struct StringBuilder
 // Returns a new allocated string builder. Returns ERROR_STRING_BUILDER if
 // allocation fails.
 StringBuilder str_builder_new(Allocator a);
+// Free string builder with the internal allocator.
+void free_string_builder(StringBuilder sb);
 // Appends string to the builder. Returns true on success. Returns false if s
 // has an error or internal reallocation fails.
 bool str_builder_append(StringBuilder *sb, String s);
@@ -343,6 +352,27 @@ void file_write_all(const char *path, u8 *bytes, u64 length);
 // Opens file and appends bytes to end before closing. Creates new file if it
 // doesnt already exist.
 void file_append_all(const char *path, u8 *bytes, u64 length);
+
+typedef struct DirEntry
+{
+    String path;
+
+    bool is_file;
+    bool is_dir;
+    bool is_symlink;
+    bool is_hardlink;
+
+    bool is_current_dir;  // Is "."
+    bool is_parent_dir;   // Is ".."
+} DirEntry;
+
+// Directory
+typedef struct Dir
+{
+    String path;
+    u64 num_entries;
+    DirEntry *entries;
+} Dir;
 
 #if defined(__linux__)
     #define OS_LINUX

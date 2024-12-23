@@ -302,6 +302,11 @@ Allocator get_arena_allocator(Arena *a)
     return al;
 }
 
+void free_arena(Arena *arena, Allocator a)
+{
+    alloc_free(a, arena); // Arena is inline
+}
+
 // MARK: Heap allocator
 
 static void *heap_allocator_proc(Allocator a, AllocatorMessage msg, u64 size, void *old_ptr)
@@ -382,6 +387,17 @@ String bytes_to_str(ByteArray bytes)
     };
 }
 
+void free_string(String s, Allocator a)
+{
+    if (!s.err)
+        alloc_free(a, s.s);
+}
+
+void free_bytes(ByteArray b, Allocator a)
+{
+    if (!b.err)
+        alloc_free(a, b.bytes);
+}
 
 String str_concat(Allocator a, String s1, String s2)
 {
@@ -614,6 +630,11 @@ StringBuilder str_builder_new(Allocator a)
         .mem = mem,
         .err = false,
     };
+}
+
+void free_string_builder(StringBuilder sb)
+{
+    alloc_free(sb.a, sb.mem);
 }
 
 bool str_builder_append(StringBuilder *sb, String s)
