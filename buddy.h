@@ -132,24 +132,24 @@ typedef struct String
 #define ERROR_STRING ((String){.s = NULL, .length = 0, .err = true})
 
 // Array of bytes with length.
-typedef struct ByteArray
+typedef struct Bytes
 {
     u8 *bytes;
     u64 length;
     bool err;
-} ByteArray;
+} Bytes;
 
-#define ERROR_BYTE_ARRAY ((ByteArray){.err = true, .length = 0, .bytes = NULL})
+#define ERROR_BYTES ((Bytes){.err = true, .length = 0, .bytes = NULL})
 
 // Free string allocated with given allocator.
 void free_string(String s, Allocator a);
 // Free byte array allocated with given allocator.
-void free_bytes(ByteArray b, Allocator a);
+void free_bytes(Bytes b, Allocator a);
 
 // Convert byte array to string. Keeps original pointer.
-String bytes_to_str(ByteArray bytes);
+String bytes_to_str(Bytes bytes);
 // Convert string to byte array. Keeps original pointer.
-ByteArray str_to_bytes(String s);
+Bytes str_to_bytes(String s);
 
 // Convert signed integer to string.
 String int_to_string(i64 n);
@@ -250,7 +250,7 @@ String str_builder_to_string(StringBuilder *sb);
 //   s: null terminated string, "(NULL)" if null pointer
 //   S: String, if error: "ERROR_STRING"
 //   b: boolean, either "true" or "false"
-//   B: ByteArray as a string, if error: "ERROR_BYTE_ARRAY"
+//   B: Bytes as a string, if error: "ERROR_BYTES"
 //
 //   i8, i16, i32, i64
 //   u8, u16, u32, u64
@@ -275,11 +275,11 @@ void os_write_out(u8 *bytes, u64 length);
 // Write bytes to standard error output.
 void os_write_err(u8 *bytes, u64 length);
 // Returns bytes read from standard input, with the bytes pointer pointing to
-// the given buffer. Returns ERROR_BYTE_ARRAY on failed read.
-ByteArray os_read_input(u8 *buffer, u64 max_length);
+// the given buffer. Returns ERROR_BYTES on failed read.
+Bytes os_read_input(u8 *buffer, u64 max_length);
 // Returns bytes read from standard input, allocating a byte array using the
-// given allocator. Returns ERROR_BYTE_ARRAY on allocation fail or failed read.
-ByteArray os_read_all_input(Allocator a);
+// given allocator. Returns ERROR_BYTES on allocation fail or failed read.
+Bytes os_read_all_input(Allocator a);
 
 // MARK: Files
 
@@ -335,15 +335,15 @@ File file_open_s(String path, FilePermission perm, bool create_if_absent, bool t
 // Close file. Sets booleans in file object.
 void file_close(File *f);
 // Read size bytes from file. Returns byte array with the contents. The length
-// may be different to size. Returns ERROR_BYTE_ARRAY on error.
-ByteArray file_read(File f, Allocator a, u64 size);
-// Opens and reads file contents before closing. Returns ERROR_BYTE_ARRAY on
+// may be different to size. Returns ERROR_BYTES on error.
+Bytes file_read(File f, Allocator a, u64 size);
+// Opens and reads file contents before closing. Returns ERROR_BYTES on
 // error.
-ByteArray file_read_all(const char *path, Allocator a);
+Bytes file_read_all(const char *path, Allocator a);
 // Write bytes to file.
 void file_write(File f, u8 *bytes, u64 size);
 // Write bytes to file.
-void file_write_arr(File f, ByteArray bytes);
+void file_write_arr(File f, Bytes bytes);
 // Write string to file.
 void file_write_str(File f, String s);
 // Opens file and writes bytes before closing. Truncates file and creates new

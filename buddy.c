@@ -363,26 +363,26 @@ void heap_free(void *ptr)
 
 // MARK: String
 
-ByteArray str_to_bytes(String s)
+Bytes str_to_bytes(String s)
 {
     if (s.err)
-        return ERROR_BYTE_ARRAY;
+        return ERROR_BYTES;
 
-    return (ByteArray){
+    return (Bytes){
         .bytes = (u8*)s.s,
         .length = s.length,
         .err = false,
     };
 }
 
-String bytes_to_str(ByteArray bytes)
+String bytes_to_str(Bytes b)
 {
-    if (bytes.err)
+    if (b.err)
         return ERROR_STRING;
 
     return (String){
-        .s = (char*)bytes.bytes,
-        .length = bytes.length,
+        .s = (char*)b.bytes,
+        .length = b.length,
         .err = false,
     };
 }
@@ -393,7 +393,7 @@ void free_string(String s, Allocator a)
         alloc_free(a, s.s);
 }
 
-void free_bytes(ByteArray b, Allocator a)
+void free_bytes(Bytes b, Allocator a)
 {
     if (!b.err)
         alloc_free(a, b.bytes);
@@ -710,21 +710,21 @@ void os_write_err(u8 *bytes, u64 length)
     write(STDOUT_FILENO, bytes, length);
 }
 
-ByteArray os_read_input(u8 *buffer, u64 max_length)
+Bytes os_read_input(u8 *buffer, u64 max_length)
 {
     assert_not_null(buffer, "os_read_input: buffer is NULL");
     i64 len = read(STDIN_FILENO, buffer, max_length);
     if (len < 0)
-        return ERROR_BYTE_ARRAY;
+        return ERROR_BYTES;
 
-    return (ByteArray){
+    return (Bytes){
         .err = false,
         .bytes = buffer,
         .length = (u64)len,
     };
 }
 
-ByteArray os_read_all_input(Allocator a)
+Bytes os_read_all_input(Allocator a)
 {
     u64 size = 2;
 
@@ -742,12 +742,12 @@ ByteArray os_read_all_input(Allocator a)
 
     while (true)
     {
-        ByteArray arr = os_read_input(offset, readable_size);
-        if (arr.err)
-            return arr;
+        Bytes b = os_read_input(offset, readable_size);
+        if (b.err)
+            return b;
 
-        if (arr.length < readable_size)
-            return (ByteArray){
+        if (b.length < readable_size)
+            return (Bytes){
                 .err = false,
                 .bytes = buffer,
                 .length = size,
@@ -756,7 +756,7 @@ ByteArray os_read_all_input(Allocator a)
         u64 new_size = size * 2;
         buffer = alloc_realloc(a, buffer, new_size);
         if (buffer == NULL)
-            return ERROR_BYTE_ARRAY;
+            return ERROR_BYTES;
 
         offset = buffer + size;
         size = new_size;
@@ -764,7 +764,7 @@ ByteArray os_read_all_input(Allocator a)
     }
 
     panic("os_read_all_input: unreachable");
-    return ERROR_BYTE_ARRAY;
+    return ERROR_BYTES;
 }
 
 void _os_flush_output(void)
@@ -876,11 +876,11 @@ static void _append_specifier(StringBuilder *sb, char *spec, va_list list)
     // Objects
     else if (cstr_equal(spec, "B"))
     {
-        ByteArray ba = va_arg(list, ByteArray);
-        if (ba.err)
-            str_builder_append_cstr(sb, "(ERROR_BYTE_ARRAY)");
+        Bytes b = va_arg(list, Bytes);
+        if (b.err)
+            str_builder_append_cstr(sb, "(ERROR_BYTES)");
         else
-            str_builder_append_bytes(sb, ba.bytes, ba.length);
+            str_builder_append_bytes(sb, b.bytes, b.length);
     }
     else if (cstr_equal(spec, "F"))
         _format_file(sb, va_arg(list, File));
@@ -1170,32 +1170,32 @@ void file_close(File *f)
     f->readable = false;
 }
 
-ByteArray file_read(File f, Allocator a, u64 size)
+Bytes file_read(File f, Allocator a, u64 size)
 {
     if (f.err)
-        return ERROR_BYTE_ARRAY;
+        return ERROR_BYTES;
 
     u8 *buffer = alloc(a, size);
     if (buffer == NULL)
-        return ERROR_BYTE_ARRAY;
+        return ERROR_BYTES;
 
     ssize_t n = read(f.fd, buffer, size);
     if (n < 0)
-        return ERROR_BYTE_ARRAY;
+        return ERROR_BYTES;
 
-    return (ByteArray){
+    return (Bytes){
         .bytes = buffer,
         .length = (u64)n,
         .err = false,
     };
 }
 
-ByteArray file_read_all(const char *path, Allocator a)
+Bytes file_read_all(const char *path, Allocator a)
 {
     File f = file_open(path, PERM_READ, false, false);
-    ByteArray bytes = file_read(f, a, f.size);
+    Bytes b = file_read(f, a, f.size);
     file_close(&f);
-    return bytes;
+    return b;
 }
 
 void file_write(File f, u8 *bytes, u64 size)
@@ -1208,11 +1208,11 @@ void file_write(File f, u8 *bytes, u64 size)
         return; // handle error
 }
 
-void file_write_arr(File f, ByteArray bytes)
+void file_write_arr(File f, Bytes b)
 {
-    if (f.err || bytes.err)
+    if (f.err || b.err)
         return;
-    file_write(f, bytes.bytes, bytes.length);
+    file_write(f, b.bytes, b.length);
 }
 
 void file_write_str(File f, String s)

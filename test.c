@@ -213,8 +213,8 @@ int main(void)
 
     file_append_all("foo.txt", (u8*)"Hello\n", 6);
 
-    ByteArray bytes = file_read_all("foo.txt", get_temporary_allocator());
-    out("{B}", bytes);
+    Bytes b = file_read_all("foo.txt", get_temporary_allocator());
+    out("{B}", b);
 
     return 0;
 }
