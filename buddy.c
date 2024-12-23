@@ -1,12 +1,11 @@
 #include "buddy.h"
 
-#include <malloc.h> // Temporary for heap alloc
-
 #include <stdarg.h>
-#include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+
+#include <malloc.h> // Temporary for heap alloc
 
 // MARK: Internal utils
 
@@ -782,6 +781,12 @@ String uint_to_string(u64 n)
 
 static void _format_file(StringBuilder *sb, File f)
 {
+    if (f.err)
+    {
+        str_builder_append_cstr(sb, "(ERROR_FILE)");
+        return;
+    }
+
     str_builder_append_cstr(sb, "File {\n");
     str_builder_append(sb, fmt("    .fd = {i32}\n", f.fd));
     str_builder_append(sb, fmt("    .path = {S}\n", f.path));
@@ -800,15 +805,30 @@ static void _append_specifier(StringBuilder *sb, char *spec, va_list list)
 {
     // String
     if (cstr_equal(spec, "s"))
-        str_builder_append_cstr(sb, va_arg(list, char*));
+    {
+        char *s = va_arg(list, char*);
+        if (s == NULL)
+            str_builder_append_cstr(sb, "(NULL)");
+        else
+            str_builder_append_cstr(sb, s);
+    }
     else if (cstr_equal(spec, "S"))
-        str_builder_append(sb, va_arg(list, String));
+    {
+        String s = va_arg(list, String);
+        if (s.err)
+            str_builder_append_cstr(sb, "(ERROR_STRING)");
+        else
+            str_builder_append(sb, s);
+    }
 
     // Objects
     else if (cstr_equal(spec, "B"))
     {
         ByteArray ba = va_arg(list, ByteArray);
-        str_builder_append_bytes(sb, ba.bytes, ba.length);
+        if (ba.err)
+            str_builder_append_cstr(sb, "(ERROR_BYTE_ARRAY)");
+        else
+            str_builder_append_bytes(sb, ba.bytes, ba.length);
     }
     else if (cstr_equal(spec, "F"))
         _format_file(sb, va_arg(list, File));
@@ -852,7 +872,7 @@ static void _append_specifier(StringBuilder *sb, char *spec, va_list list)
 
 String _fmt(const char *format, va_list args)
 {
-    assert_not_null(format, "fmt: format is NULL");
+    assert_not_null(format, "_fmt: format is NULL");
 
     StringBuilder sb = str_builder_new(get_temporary_allocator());
     String fmt_s = _STRING((char*)format);
@@ -884,10 +904,14 @@ String _fmt(const char *format, va_list args)
 
 String fmt(const char *format, ...)
 {
+    if (format == NULL)
+        return str_temp("(NULL)");
+
     va_list args;
     va_start(args, format);
     String f = _fmt(format, args);
     va_end(args);
+
     return f;
 }
 

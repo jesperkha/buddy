@@ -221,13 +221,17 @@ String uint_to_string(u64 n);
 
 // Create formatted string. Valid specifiers are:
 //
-//   s (null terminated string),
-//   S (String),
-//   B (ByteArray),
-//   i8, i16, i32, i64,
-//   u8, u16, u32, u64,
+//   Use: "{specifier}"
 //
-// Example: fmt("Name: {s}, Age: {u32}", "John", 42);
+//   s: null terminated string, "(NULL)" if null pointer
+//   S: String, if error: "ERROR_STRING"
+//   b: boolean, either "true" or "false"
+//   B: ByteArray as a string, if error: "ERROR_BYTE_ARRAY"
+//
+//   i8, i16, i32, i64
+//   u8, u16, u32, u64
+//
+// Returns "(NULL)" if format is null.
 String fmt(const char *format, ...);
 // Print formatted string to standard out. Appends newline.
 void out(const char *text, ...);
