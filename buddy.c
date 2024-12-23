@@ -1138,3 +1138,11 @@ ByteArray file_read(File f, Allocator a, u64 size)
     };
 }
 
+ByteArray file_read_all(const char *path, Allocator a)
+{
+    File f = file_open(path, PERM_READ, false, false);
+    ByteArray bytes = file_read(f, a, f.size);
+    file_close(&f);
+    return bytes;
+}
+

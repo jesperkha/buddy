@@ -209,16 +209,9 @@ int main(void)
     run(Path);
     */
 
-    File f = file_open("Makefile", PERM_READ, false, false);
-    if (f.err)
-    {
-        out("File error");
-        return 1;
-    }
+    ByteArray bytes = file_read_all("Makefile", get_temporary_allocator());
+    out("{B}", bytes);
 
-    out("{F}", f);
-
-    file_close(&f);
     return 0;
 }
 

@@ -325,6 +325,9 @@ void file_close(File *f);
 // Read size bytes from file. Returns byte array with the contents. The length
 // may be different to size. Returns ERROR_BYTE_ARRAY on error.
 ByteArray file_read(File f, Allocator a, u64 size);
+// Opens and reads file contents before closing. Returns ERROR_BYTE_ARRAY on
+// error.
+ByteArray file_read_all(const char *path, Allocator a);
 
 #if defined(__linux__)
     #define OS_LINUX
