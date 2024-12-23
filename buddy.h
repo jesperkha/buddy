@@ -144,6 +144,11 @@ String bytes_to_str(ByteArray bytes);
 // Convert string to byte array. Keeps original pointer.
 ByteArray str_to_bytes(String s);
 
+// Convert signed integer to string.
+String int_to_string(i64 n);
+// Convert unsigned integer to string.
+String uint_to_string(u64 n);
+
 // Returns the byte length of a NULL-terminated C string.
 uint cstr_len(const char *s);
 // Allocates a new string using the temporary allocator. See `str_alloc` to use
@@ -229,11 +234,6 @@ bool str_builder_append_char(StringBuilder *sb, char c);
 // Returns the string builder as a string.
 String str_builder_to_string(StringBuilder *sb);
 
-// Convert signed integer to string.
-String int_to_string(i64 n);
-// Convert unsigned integer to string.
-String uint_to_string(u64 n);
-
 // Create formatted string. Valid specifiers are:
 //
 //   Use: "{specifier}"
@@ -309,8 +309,6 @@ typedef struct File
 
     u64 size;
     u64 size_on_disk; // Aligned to disk page size
-
-    // Date? Permissions?
 
     bool open;
     bool writeable;
