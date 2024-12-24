@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <dirent.h>
 
 #include <malloc.h> // Temporary for heap alloc
 
@@ -13,7 +14,7 @@
     #define PATH_SEP '\\'
 #endif
 
-// MARK: Internal utils
+// :utils
 
 #define panic(msg)          \
     {                       \
@@ -47,7 +48,7 @@ void copy_memory(void *dest, void *source, u64 size)
         ((u8 *)dest)[i] = ((u8 *)source)[i];
 }
 
-// MARK: Allocator
+// :allocator
 
 typedef struct BlockHeader
 {
@@ -199,7 +200,7 @@ void temp_restore_mark(u64 id)
     _temp_alloc_head = _temp_alloc_buffer + id;
 }
 
-// MARK: Arena
+// :arena
 
 Arena *arena_new(Allocator a, u64 size)
 {
@@ -304,10 +305,11 @@ Allocator get_arena_allocator(Arena *a)
 
 void free_arena(Arena *arena, Allocator a)
 {
+    assert_not_null(arena, "free_arena: arena is null");
     alloc_free(a, arena); // Arena is inline
 }
 
-// MARK: Heap allocator
+// :heap allocator
 
 static void *heap_allocator_proc(Allocator a, AllocatorMessage msg, u64 size, void *old_ptr)
 {
@@ -361,7 +363,7 @@ void heap_free(void *ptr)
     alloc_free(get_heap_allocator(), ptr);
 }
 
-// MARK: String
+// :string
 
 Bytes str_to_bytes(String s)
 {
@@ -611,7 +613,7 @@ i64 str_find_char_reverse(String s, char c)
     return -1;
 }
 
-// MARK: StringBuilder
+// :stringbuiler
 
 #define _STRINGBUILDER_START_SIZE 64
 
@@ -691,22 +693,22 @@ String str_builder_to_string(StringBuilder *sb)
     str_builder_append_char(sb, 0); // Null terminator
     return (String){
         .s = sb->mem,
-        .length = sb->length,
+        .length = sb->length - 1, // Exclude null terminator
         .err = false,
     };
 }
 
-// MARK: OS
+// :os
 
 void os_write_out(u8 *bytes, u64 length)
 {
-    assert_not_null(bytes, "_os_write: bytes is NULL");
+    assert_not_null(bytes, "os_write_out: bytes is NULL");
     write(STDOUT_FILENO, bytes, length);
 }
 
 void os_write_err(u8 *bytes, u64 length)
 {
-    assert_not_null(bytes, "_os_write: bytes is NULL");
+    assert_not_null(bytes, "os_write_err: bytes is NULL");
     write(STDOUT_FILENO, bytes, length);
 }
 
@@ -851,7 +853,7 @@ static void _format_file(StringBuilder *sb, File f)
     str_builder_append_cstr(sb, "}\n");
 }
 
-// MARK: fmt
+// :fmt
 
 static void _append_specifier(StringBuilder *sb, char *spec, va_list list)
 {
@@ -893,11 +895,11 @@ static void _append_specifier(StringBuilder *sb, char *spec, va_list list)
 
     // Signed int
     else if (cstr_equal(spec, "i8"))
-        str_builder_append(sb, int_to_string((i8)va_arg(list, i64)));
+        str_builder_append(sb, int_to_string((i8)va_arg(list, i32)));
     else if (cstr_equal(spec, "i16"))
-        str_builder_append(sb, int_to_string((i16)va_arg(list, i64)));
+        str_builder_append(sb, int_to_string((i16)va_arg(list, i32)));
     else if (cstr_equal(spec, "i32"))
-        str_builder_append(sb, int_to_string((i32)va_arg(list, i64)));
+        str_builder_append(sb, int_to_string((i32)va_arg(list, i32)));
     else if (cstr_equal(spec, "i64"))
         str_builder_append(sb, int_to_string((i64)va_arg(list, i64)));
 
@@ -1002,7 +1004,7 @@ void out_no_newline(const char *format, ...)
     va_end(args);
 }
 
-// MARK: Path
+// :path
 
 String get_username(void)
 {
@@ -1161,6 +1163,8 @@ File file_open(const char *path, FilePermission perm, bool create_if_absent, boo
 
 void file_close(File *f)
 {
+    assert_not_null(f, "file_close: f is null");
+
     if (f->err)
         return;
 
@@ -1234,5 +1238,95 @@ void file_append_all(const char *path, u8 *bytes, u64 length)
     File f = file_open(path, PERM_APPEND, true, false);
     file_write(f, bytes, length);
     file_close(&f);
+}
+
+// :directory
+
+Dir dir_read_s(String path)
+{
+    if (path.err)
+        return ERROR_DIR;
+
+    DIR *dir = opendir(path.s);
+    if (dir == NULL)
+        return ERROR_DIR;
+
+    struct dirent *entry = NULL;
+    while ((entry = readdir(dir)) != NULL)
+    {
+        out("Entry: {s}", entry->d_name);
+    }
+
+    closedir(dir);
+    return ERROR_DIR;
+}
+
+Dir dir_read(const char *path)
+{
+    return dir_read_s(str_temp((char*)path));
+}
+
+// :sparselist
+
+SparseList sparse_list_new(u64 item_size, u64 length, Allocator a)
+{
+    void *ptr = alloc(a, item_size * length);
+    if (ptr == NULL)
+        return ERROR_LIST;
+
+    return (SparseList){
+        .a = a,
+        .cap = length,
+        .mem = ptr,
+        .size = 0,
+        .item_size = item_size,
+        .err = false,
+    };
+}
+
+void sparse_list_append(SparseList *list, void *item)
+{
+    assert_not_null(list, "sparse_list_append: list is null");
+    assert_not_null(list, "sparse_list_append: item is null");
+
+    if (list->size == list->cap)
+    {
+        // Reallocate internal array
+        void *ptr = alloc_realloc(list->a, list->mem, list->cap * 2 * list->item_size);
+        if (ptr == NULL)
+            return;
+
+        list->cap *= 2;
+        list->mem = ptr;
+    }
+
+    u8 *dest = (u8*)list->mem + (list->size * list->item_size);
+    copy_memory(dest, item, list->item_size);
+    list->size++;
+}
+
+void *sparse_list_get(SparseList *list, u64 index)
+{
+    assert_not_null(list, "sparse_list_get: list is null");
+
+    if (list->err || index >= list->size)
+        return NULL;
+
+    return (u8*)list->mem + (index * list->item_size);
+}
+
+void sparse_list_remove(SparseList *list, u64 index)
+{
+    assert_not_null(list, "sparse_list_remove: list is null");
+
+    if (list->err || index >= list->size)
+        return;
+
+    // Put last element at index and reduce size
+    u8 *dest = sparse_list_get(list, index);
+    u8 *src = sparse_list_get(list, list->size-1);
+    copy_memory(dest, src, list->item_size);
+
+    list->size--;
 }
 

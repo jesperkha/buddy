@@ -355,12 +355,11 @@ void file_append_all(const char *path, u8 *bytes, u64 length);
 
 typedef struct DirEntry
 {
-    String path;
+    String name;
 
     bool is_file;
     bool is_dir;
     bool is_symlink;
-    bool is_hardlink;
 
     bool is_current_dir;  // Is "."
     bool is_parent_dir;   // Is ".."
@@ -372,7 +371,40 @@ typedef struct Dir
     String path;
     u64 num_entries;
     DirEntry *entries;
+    bool err;
 } Dir;
+
+#define ERROR_DIR ((Dir){.err = true, .path = ERROR_STRING, .num_entries = 0})
+
+Dir dir_read(const char *path);
+Dir dir_read_s(String path);
+
+typedef struct List
+{
+    Allocator a;
+    void *mem;
+    u64 size;
+    u64 cap;
+    u64 item_size;
+    bool err;
+} List;
+
+typedef List SparseList; // Unordered list with fast remove
+
+// Universal for all list variants
+#define ERROR_LIST ((List){.err = true, .mem = NULL, .size = 0, .cap = 0})
+
+// Create new sparse list with allocator and intial size. Item size is in bytes.
+// Returns ERROR_LIST if allocation fails.
+SparseList sparse_list_new(u64 item_size, u64 length, Allocator a);
+// Appends item to end of list. Panics if list or item is null.
+void sparse_list_append(SparseList *list, void *item);
+// Get a pointer to the item at index. Returns NULL if index is out of bounds.
+// Panics is list is null.
+void *sparse_list_get(SparseList *list, u64 index);
+// Removes item at index by replacing it with the last item. Fails if index is
+// out of bounds. Panics is list is null.
+void sparse_list_remove(SparseList *list, u64 index);
 
 #if defined(__linux__)
     #define OS_LINUX

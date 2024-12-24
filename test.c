@@ -9,7 +9,7 @@
 #define title(m) out("TEST: " m)
 #define fail(m)                        \
     {                                  \
-        title("   >>> FAIL: " m); \
+        title("   >>> FAIL: " m "\n"); \
         return false;                  \
     }
 #define assert(v, m) \
@@ -137,7 +137,8 @@ test(StringBuilder, {
         assert(str_builder_append_cstr(&sb, "world!"), "Expected success");
 
         String expect = str_temp("Hello world!");
-        assert(str_equal(expect, str_builder_to_string(&sb)), "Expected equal");
+        String result = str_builder_to_string(&sb);
+        assert(str_equal(expect, result), "Expected equal");
     }
     {
         log("string builder realloc");
@@ -201,20 +202,49 @@ test(Path, {
     }
 })
 
+test(List, {
+    {
+        log("SparseList");
+        SparseList list = sparse_list_new(sizeof(String), 2, get_temporary_allocator());
+        assert(!list.err, "Expected no error");
+
+        int count = 10;
+        for (int i = 0; i < count; i++)
+        {
+            String s = fmt("Hello {i32}", i);
+            assert(!s.err && s.s != NULL, "String error");
+            sparse_list_append(&list, &s);
+        }
+
+        for (int i = 0; i < count; i++)
+        {
+            String *s = sparse_list_get(&list, (u32)i);
+            assert(s != NULL, "Expected not null");
+            assert(str_equal(*s, fmt("Hello {i32}", i)), "Expected get equal");
+        }
+
+        sparse_list_remove(&list, 0);
+        sparse_list_remove(&list, 1);
+        sparse_list_remove(&list, 2);
+        assert(list.size == (u64)count-3, "Expected correct size after remove");
+
+        for (int i = 0; i < 3; i++)
+        {
+            String *s = sparse_list_get(&list, (u32)i);
+            assert(s != NULL, "Expected not null");
+            assert(str_equal(*s, fmt("Hello {i32}", count-i-1)), "Expected equal after remove");
+        }
+    }
+})
+
 int main(void)
 {
-    /*
     run(String);
     run(Allocation);
     run(StringBuilder);
     run(Fmt);
     run(Path);
-    */
-
-    file_append_all("foo.txt", (u8*)"Hello\n", 6);
-
-    Bytes b = file_read_all("foo.txt", get_temporary_allocator());
-    out("{B}", b);
+    run(List);
 
     return 0;
 }
