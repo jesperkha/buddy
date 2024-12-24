@@ -237,7 +237,7 @@ test(List, {
     }
 })
 
-int main(void)
+void run_tests(void)
 {
     run(String);
     run(Allocation);
@@ -245,6 +245,21 @@ int main(void)
     run(Fmt);
     run(Path);
     run(List);
+}
+
+int main(void)
+{
+    Dir dir = dir_read(NULL, get_heap_allocator());
+
+    for (u64 i = 0; i < dir.num_entries; i++)
+    {
+        DirEntry entry = dir.entries[i];
+
+        if (entry.is_file)
+            out("File: {S}", entry.name);
+        else if (entry.is_dir && !entry.is_current_dir && !entry.is_parent_dir)
+            out("Dir: {S}", entry.name);
+    }
 
     return 0;
 }

@@ -158,7 +158,7 @@ static void *temporary_allocator_proc(Allocator a, AllocatorMessage msg, u64 siz
     }
 
     case ALLOCATOR_MSG_FREE:
-        break;
+        return NULL;
     }
 
     panic("temporary_allocator_proc: unknown allocation message");
@@ -485,7 +485,7 @@ String str_alloc_cstr(Allocator a, char *s)
         return ERROR_STRING;
 
     u64 len = cstr_len(s);
-    char *mem = (char*)alloc(a, len);
+    char *mem = (char*)alloc(a, len+1);
     if (mem == NULL)
         return ERROR_STRING;
 
@@ -1242,7 +1242,7 @@ void file_append_all(const char *path, u8 *bytes, u64 length)
 
 // :directory
 
-Dir dir_read_s(String path)
+Dir dir_read_s(String path, Allocator a)
 {
     if (path.err)
         return ERROR_DIR;
@@ -1251,19 +1251,59 @@ Dir dir_read_s(String path)
     if (dir == NULL)
         return ERROR_DIR;
 
+    SparseList list = sparse_list_new(sizeof(DirEntry), 16, a);
+    if (list.err)
+        return ERROR_DIR;
+
     struct dirent *entry = NULL;
     while ((entry = readdir(dir)) != NULL)
     {
-        out("Entry: {s}", entry->d_name);
+        String name = str_alloc_cstr(a, entry->d_name);
+        if (name.err)
+            return ERROR_DIR;
+
+        DirEntry e = {
+            .name = name,
+            .is_dir = entry->d_type == DT_DIR,
+            .is_file = entry->d_type == DT_REG,
+            .is_symlink = entry->d_type == DT_LNK,
+        };
+
+        e.is_current_dir = e.is_dir && cstr_equal(e.name.s, ".");
+        e.is_parent_dir = e.is_dir && cstr_equal(e.name.s, "..");
+
+        sparse_list_append(&list, &e);
     }
 
     closedir(dir);
-    return ERROR_DIR;
+
+    if (list.err)
+        return ERROR_DIR;
+
+    return (Dir){
+        .a = a,
+        .entries = list.mem,
+        .num_entries = list.size,
+        .err = false,
+        .path = path,
+    };
 }
 
-Dir dir_read(const char *path)
+Dir dir_read(const char *path, Allocator a)
 {
-    return dir_read_s(str_temp((char*)path));
+    return dir_read_s(str_temp((char*)path), a);
+}
+
+void free_dir(Dir *dir)
+{
+    if (dir == NULL || dir->err)
+        return;
+
+    for (u64 i = 0; i < dir->num_entries; i++)
+        free_string(dir->entries[i].name, dir->a);
+
+    alloc_free(dir->a, dir->entries);
+    dir->err = true;
 }
 
 // :sparselist

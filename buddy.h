@@ -20,14 +20,14 @@ typedef float f32;
 typedef double f64;
 typedef u64 uptr;
 
-// MARK: Common
+// Common
 
 // Zeroes out memory. Size is in BYTES.
 void zero_memory(void *p, u64 size);
 // Copies memory from source to dest. Size is in BYTES.
 void copy_memory(void *dest, void *source, u64 size);
 
-// MARK: Allocators
+// Allocators
 
 typedef enum AllocatorMessage
 {
@@ -56,6 +56,8 @@ void *alloc_realloc(Allocator a, void *p, u64 new_size);
 // Frees memory allocated by a.
 void alloc_free(Allocator a, void *p);
 
+// Heap allocator
+
 // Currently a wrapper for malloc. Will soon change to a custom heap allocator.
 Allocator get_heap_allocator();
 // Allocates memory with heap allocator. Returns NULL if allocation fails.
@@ -67,7 +69,7 @@ void *heap_realloc(void *old_ptr, u64 size);
 // Frees heap allocated pointer.
 void heap_free(void *ptr);
 
-// MARK: Temporary Allocator
+// Temporary allocator
 
 #define TEMP_ALLOC_BUFSIZE MB(8)
 
@@ -93,7 +95,7 @@ u64 temp_mark();
 // Restores to mark ID. Any memory allocated after the mark will be discarded.
 void temp_restore_mark(u64 id);
 
-// MARK: Arena
+// Arena
 
 // Arenas a chunks of memory you can allocate to and free all at once. They make
 // it easy to handle memory across multiple function calls as you can free
@@ -116,7 +118,7 @@ void *arena_zero_alloc(Arena *a, u64 size);
 // Get an allocator using the given arena.
 Allocator get_arena_allocator(Arena *a);
 
-// MARK: String
+// String
 
 // Strings are simply a pointer with a length and an error value. When using
 // string functions, they may set err=true if something went wrong. This allows
@@ -206,7 +208,7 @@ i64 str_find_char_reverse(String s, char c);
 // error or allocation fails.
 String str_concat(Allocator a, String s1, String s2);
 
-// MARK: StringBuilder
+// String builder
 
 // StringBuilder creates a string from multiple others. It automatically
 // reallocates the internal memory with the allocator given on init.
@@ -243,6 +245,8 @@ bool str_builder_append_char(StringBuilder *sb, char c);
 // Returns the string builder as a string.
 String str_builder_to_string(StringBuilder *sb);
 
+// Format and print
+
 // Create formatted string. Valid specifiers are:
 //
 //   Use: "{specifier}"
@@ -262,7 +266,7 @@ void out(const char *text, ...);
 // Same as out but without the appended newline.
 void out_no_newline(const char *format, ...);
 
-// MARK: IO
+// IO
 
 // Returns username of currently logged in user. Returns ERROR_STRING
 // if username couldnt be retreived.
@@ -281,7 +285,7 @@ Bytes os_read_input(u8 *buffer, u64 max_length);
 // given allocator. Returns ERROR_BYTES on allocation fail or failed read.
 Bytes os_read_all_input(Allocator a);
 
-// MARK: Files
+// Files
 
 // Get the path to root on the system.
 String path_root();
@@ -353,6 +357,8 @@ void file_write_all(const char *path, u8 *bytes, u64 length);
 // doesnt already exist.
 void file_append_all(const char *path, u8 *bytes, u64 length);
 
+// Directories
+
 typedef struct DirEntry
 {
     String name;
@@ -365,9 +371,9 @@ typedef struct DirEntry
     bool is_parent_dir;   // Is ".."
 } DirEntry;
 
-// Directory
 typedef struct Dir
 {
+    Allocator a;
     String path;
     u64 num_entries;
     DirEntry *entries;
@@ -376,8 +382,15 @@ typedef struct Dir
 
 #define ERROR_DIR ((Dir){.err = true, .path = ERROR_STRING, .num_entries = 0})
 
-Dir dir_read(const char *path);
-Dir dir_read_s(String path);
+// Read directory contents. Returns list of entries allocated with given
+// allocator. Returns ERROR_DIR on error. Free with free_dir().
+Dir dir_read(const char *path, Allocator a);
+// Same as dir_read().
+Dir dir_read_s(String path, Allocator a);
+// Free directory object with internal allocator.
+void free_dir(Dir *dir);
+
+// Lists
 
 typedef struct List
 {
@@ -405,6 +418,10 @@ void *sparse_list_get(SparseList *list, u64 index);
 // Removes item at index by replacing it with the last item. Fails if index is
 // out of bounds. Panics is list is null.
 void sparse_list_remove(SparseList *list, u64 index);
+
+// Macros
+
+// Defines
 
 #if defined(__linux__)
     #define OS_LINUX
