@@ -429,6 +429,16 @@ void cmd_fmt(const char *format, ...);
 // Use cmd(...) macro instead. Must be NULL terminated list of args.
 void _cmd(const char *arg1, ...);
 
+// Build tools
+
+// Runs given command for each file in the path directory. Extension is the
+// file type to target, provide NULL to target all files. Command may contain
+// *one* {S} specifier which will be replaced with the filename for each file.
+void run_cmd_for_each_file_in_dir(const char *command, const char *path, const char *extension);
+// Same as run_cmd_for_each_file_in_dir, but replace extension with ERROR_STRING
+// to omit the file type filter.
+void run_cmd_for_each_file_in_dir_s(String command, String path, String extension);
+
 // Macros
 
 // Defines

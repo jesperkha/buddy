@@ -1,5 +1,6 @@
 #include "buddy.h"
 
+#include <complex.h>
 #include <stdarg.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -1418,6 +1419,47 @@ void cmd_fmt(const char *format, ...)
         return;
 
     _cmd(s.s, NULL);
+}
+
+// :build
+
+void run_cmd_for_each_file_in_dir(const char *cmd, const char *path, const char *extension)
+{
+    if (cmd == NULL || path == NULL)
+        return;
+
+    run_cmd_for_each_file_in_dir_s(
+            str_temp((char*)cmd),
+            str_temp((char*)path),
+            str_temp((char*)extension));
+}
+
+void run_cmd_for_each_file_in_dir_s(String command, String path, String extension)
+{
+    if (command.err || path.err)
+        return;
+
+    Dir dir = dir_read_s(path, get_temporary_allocator());
+    if (dir.err)
+        return;
+
+    for (u64 i = 0; i < dir.num_entries; i++)
+    {
+        DirEntry entry = dir.entries[i];
+
+        if (!extension.err)
+        {
+            String ext = path_get_extension(entry.name);
+            if (!str_equal(ext, extension))
+                continue;
+        }
+
+        if (!entry.is_file)
+            continue;
+
+        // Slightly prevent fuck ups with padded nulls
+        cmd_fmt(command.s, entry.name, NULL, NULL, NULL);
+    }
 }
 
 
