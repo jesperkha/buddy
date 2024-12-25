@@ -1370,3 +1370,38 @@ void sparse_list_remove(SparseList *list, u64 index)
     list->size--;
 }
 
+// :shell
+
+int _cmd(const char *arg1, ...)
+{
+    assert_not_null(arg1, "_cmd: arg1 is null");
+
+    va_list list;
+    va_start(list, arg1);
+
+    StringBuilder sb = str_builder_new(get_temporary_allocator());
+    char *s = NULL;
+
+    str_builder_append_cstr(&sb, (char*)arg1);
+    str_builder_append_char(&sb, ' ');
+
+    while ((s = va_arg(list, char*)) != NULL)
+    {
+        str_builder_append_cstr(&sb, s);
+        str_builder_append_char(&sb, ' ');
+    }
+
+    va_end(list);
+    String args = str_builder_to_string(&sb);
+
+    if (fork() == 0)
+    {
+        // As child, execute command
+        execl("/bin/sh", "sh", "-c", args.s, NULL);
+        os_exit(0);
+    }
+
+    out("cmd: {S}", args);
+    return 0;
+}
+

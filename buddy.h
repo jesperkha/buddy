@@ -419,6 +419,12 @@ void *sparse_list_get(SparseList *list, u64 index);
 // out of bounds. Panics is list is null.
 void sparse_list_remove(SparseList *list, u64 index);
 
+// Shell and commands
+
+// Execute shell command
+#define cmd(...) _cmd(__VA_ARGS__, NULL);
+int _cmd(const char *arg1, ...);
+
 // Macros
 
 // Defines
