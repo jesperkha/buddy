@@ -1372,7 +1372,7 @@ void sparse_list_remove(SparseList *list, u64 index)
 
 // :shell
 
-int _cmd(const char *arg1, ...)
+void _cmd(const char *arg1, ...)
 {
     assert_not_null(arg1, "_cmd: arg1 is null");
 
@@ -1402,6 +1402,22 @@ int _cmd(const char *arg1, ...)
     }
 
     out("cmd: {S}", args);
-    return 0;
 }
+
+void cmd_fmt(const char *format, ...)
+{
+    assert_not_null(format, "cmd_fmt: format is null");
+
+    va_list args;
+    va_start(args, format);
+
+    String s = _fmt(format, args);
+    va_end(args);
+
+    if (s.err)
+        return;
+
+    _cmd(s.s, NULL);
+}
+
 

@@ -421,9 +421,13 @@ void sparse_list_remove(SparseList *list, u64 index);
 
 // Shell and commands
 
-// Execute shell command
+// Execute shell command.
 #define cmd(...) _cmd(__VA_ARGS__, NULL);
-int _cmd(const char *arg1, ...);
+// Run shell command with formatted string.
+void cmd_fmt(const char *format, ...);
+
+// Use cmd(...) macro instead. Must be NULL terminated list of args.
+void _cmd(const char *arg1, ...);
 
 // Macros
 
