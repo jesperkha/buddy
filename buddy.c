@@ -10,9 +10,9 @@
 #include <malloc.h> // Temporary for heap alloc
 
 #if defined(OS_LINUX)
-    #define PATH_SEP '/'
+#define PATH_SEP '/'
 #elif defined(OS_WINDOWS)
-    #define PATH_SEP '\\'
+#define PATH_SEP '\\'
 #endif
 
 // :utils
@@ -59,7 +59,7 @@ typedef struct BlockHeader
 
 BlockHeader *_get_block_header(void *p)
 {
-    return (BlockHeader*)((u8*)p - sizeof(BlockHeader));
+    return (BlockHeader *)((u8 *)p - sizeof(BlockHeader));
 }
 
 void *alloc(Allocator a, u64 size)
@@ -124,11 +124,11 @@ static void *temporary_allocator_proc(Allocator a, AllocatorMessage msg, u64 siz
         head = _align_to_8bytes(head);
         _temp_alloc_head = head + actual_size;
 
-        BlockHeader *block = (BlockHeader*)head;
+        BlockHeader *block = (BlockHeader *)head;
         block->signature = TEMP_BLOCK_SIGNATURE;
         block->size = size;
 
-        return (u8*)block + sizeof(BlockHeader);
+        return (u8 *)block + sizeof(BlockHeader);
     }
 
     case ALLOCATOR_MSG_ZERO_ALLOC:
@@ -205,7 +205,7 @@ void temp_restore_mark(u64 id)
 
 Arena *arena_new(Allocator a, u64 size)
 {
-    Arena *arena = (Arena*)alloc(a, size + sizeof(Arena));
+    Arena *arena = (Arena *)alloc(a, size + sizeof(Arena));
     if (arena == NULL)
         return arena;
 
@@ -244,7 +244,7 @@ static void *arena_allocator_proc(Allocator a, AllocatorMessage msg, u64 size, v
     {
     case ALLOCATOR_MSG_ALLOC:
     {
-        Arena *arena = (Arena*)a.data;
+        Arena *arena = (Arena *)a.data;
         if (arena == NULL)
             return arena;
 
@@ -254,12 +254,12 @@ static void *arena_allocator_proc(Allocator a, AllocatorMessage msg, u64 size, v
 
         block->size = size;
         block->signature = ARENA_BLOCK_SIGNATURE;
-        return (u8*)block + sizeof(BlockHeader);
+        return (u8 *)block + sizeof(BlockHeader);
     }
 
     case ALLOCATOR_MSG_ZERO_ALLOC:
     {
-        Arena *arena = (Arena*)a.data;
+        Arena *arena = (Arena *)a.data;
         if (arena == NULL)
             return arena;
 
@@ -338,7 +338,7 @@ static void *heap_allocator_proc(Allocator a, AllocatorMessage msg, u64 size, vo
 
 Allocator get_heap_allocator(void)
 {
-    return (Allocator) {
+    return (Allocator){
         .data = NULL,
         .proc = heap_allocator_proc,
     };
@@ -372,7 +372,7 @@ Bytes str_to_bytes(String s)
         return ERROR_BYTES;
 
     return (Bytes){
-        .bytes = (u8*)s.s,
+        .bytes = (u8 *)s.s,
         .length = s.length,
         .err = false,
     };
@@ -384,7 +384,7 @@ String bytes_to_str(Bytes b)
         return ERROR_STRING;
 
     return (String){
-        .s = (char*)b.bytes,
+        .s = (char *)b.bytes,
         .length = b.length,
         .err = false,
     };
@@ -466,7 +466,7 @@ String str_alloc(Allocator a, String s)
     if (s.err)
         return ERROR_STRING;
 
-    char *mem = (char*)alloc(a, s.length+1);
+    char *mem = (char *)alloc(a, s.length + 1);
     if (mem == NULL)
         return ERROR_STRING;
 
@@ -486,7 +486,7 @@ String str_alloc_cstr(Allocator a, char *s)
         return ERROR_STRING;
 
     u64 len = cstr_len(s);
-    char *mem = (char*)alloc(a, len+1);
+    char *mem = (char *)alloc(a, len + 1);
     if (mem == NULL)
         return ERROR_STRING;
 
@@ -542,6 +542,7 @@ bool str_equal(String a, String b)
     for (u64 i = 0; i < a.length; i++)
         if (a.s[i] != b.s[i])
             return false;
+
     return true;
 }
 
@@ -607,7 +608,7 @@ i64 str_find_char_reverse(String s, char c)
     if (s.err)
         return -1;
 
-    for (i64 i = (i64)s.length-1; i >= 0; i--)
+    for (i64 i = (i64)s.length - 1; i >= 0; i--)
         if (s.s[i] == c)
             return i;
 
@@ -622,7 +623,7 @@ StringBuilder str_builder_new(Allocator a)
 {
     const u64 size = _STRINGBUILDER_START_SIZE;
 
-    char *mem = (char*)alloc(a, size);
+    char *mem = (char *)alloc(a, size);
     if (mem == NULL)
         return ERROR_STRING_BUILDER;
 
@@ -644,7 +645,7 @@ bool str_builder_append(StringBuilder *sb, String s)
 {
     if (s.err)
         return false;
-    return str_builder_append_bytes(sb, (u8*)s.s, s.length);
+    return str_builder_append_bytes(sb, (u8 *)s.s, s.length);
 }
 
 bool str_builder_append_cstr(StringBuilder *sb, char *s)
@@ -675,7 +676,7 @@ bool str_builder_append_bytes(StringBuilder *sb, u8 *bytes, u64 length)
         while (new_size < sb->size + length)
             new_size *= 2;
 
-        char *new_mem = (char*)alloc_realloc(sb->a, sb->mem, new_size);
+        char *new_mem = (char *)alloc_realloc(sb->a, sb->mem, new_size);
         if (new_mem == NULL)
             return false;
 
@@ -704,19 +705,19 @@ String str_builder_to_string(StringBuilder *sb)
 void os_write_out(u8 *bytes, u64 length)
 {
     assert_not_null(bytes, "os_write_out: bytes is NULL");
-    write(STDOUT_FILENO, bytes, length);
+    write(STDOUT_FILENO, bytes, (u32)length);
 }
 
 void os_write_err(u8 *bytes, u64 length)
 {
     assert_not_null(bytes, "os_write_err: bytes is NULL");
-    write(STDOUT_FILENO, bytes, length);
+    write(STDOUT_FILENO, bytes, (u32)length);
 }
 
 Bytes os_read_input(u8 *buffer, u64 max_length)
 {
     assert_not_null(buffer, "os_read_input: buffer is NULL");
-    i64 len = read(STDIN_FILENO, buffer, max_length);
+    i64 len = read(STDIN_FILENO, buffer, (u32)max_length);
     if (len < 0)
         return ERROR_BYTES;
 
@@ -763,7 +764,7 @@ Bytes os_read_all_input(Allocator a)
 
         offset = buffer + size;
         size = new_size;
-        readable_size = size/2;
+        readable_size = size / 2;
     }
 
     panic("os_read_all_input: unreachable");
@@ -779,16 +780,18 @@ void _os_flush_output(void)
 
 void _os_flush_input(void)
 {
+#if defined(OS_LINUX)
     char buffer[64];
 
     // Set stdin to non-blocking mode
     int flags = fcntl(STDIN_FILENO, F_GETFL);
     fcntl(STDIN_FILENO, F_SETFL, flags | O_NONBLOCK);
-
-    while (read(STDIN_FILENO, buffer, sizeof(buffer)) > 0);
+    while (read(STDIN_FILENO, buffer, sizeof(buffer)) > 0)
+        ;
 
     // Restore blocking mode
     fcntl(STDIN_FILENO, F_SETFL, flags);
+#endif
 }
 
 void os_exit(u8 status)
@@ -825,7 +828,8 @@ static String _number_to_string(u64 n, bool sign)
 String int_to_string(i64 n)
 {
     bool sign = n < 0;
-    if (n < 0) n *= -1;
+    if (n < 0)
+        n *= -1;
     return _number_to_string((u64)n, sign);
 }
 
@@ -856,12 +860,12 @@ static void _format_file(StringBuilder *sb, File f)
 
 // :fmt
 
-static void _append_specifier(StringBuilder *sb, char *spec, va_list list)
+static void _append_specifier(StringBuilder *sb, char *spec, va_list *list)
 {
     // String
     if (cstr_equal(spec, "s"))
     {
-        char *s = va_arg(list, char*);
+        char *s = va_arg(*list, char *);
         if (s == NULL)
             str_builder_append_cstr(sb, "(NULL)");
         else
@@ -869,7 +873,7 @@ static void _append_specifier(StringBuilder *sb, char *spec, va_list list)
     }
     else if (cstr_equal(spec, "S"))
     {
-        String s = va_arg(list, String);
+        String s = va_arg(*list, String);
         if (s.err)
             str_builder_append_cstr(sb, "(ERROR_STRING)");
         else
@@ -879,40 +883,38 @@ static void _append_specifier(StringBuilder *sb, char *spec, va_list list)
     // Objects
     else if (cstr_equal(spec, "B"))
     {
-        Bytes b = va_arg(list, Bytes);
+        Bytes b = va_arg(*list, Bytes);
         if (b.err)
             str_builder_append_cstr(sb, "(ERROR_BYTES)");
         else
             str_builder_append_bytes(sb, b.bytes, b.length);
     }
     else if (cstr_equal(spec, "F"))
-        _format_file(sb, va_arg(list, File));
+        _format_file(sb, va_arg(*list, File));
 
     // Bool
     else if (cstr_equal(spec, "b"))
-        va_arg(list, u32) > 0 ?
-            str_builder_append_cstr(sb, "true") :
-            str_builder_append_cstr(sb, "false");
+        va_arg(*list, u32) > 0 ? str_builder_append_cstr(sb, "true") : str_builder_append_cstr(sb, "false");
 
     // Signed int
     else if (cstr_equal(spec, "i8"))
-        str_builder_append(sb, int_to_string((i8)va_arg(list, i32)));
+        str_builder_append(sb, int_to_string((i8)va_arg(*list, i32)));
     else if (cstr_equal(spec, "i16"))
-        str_builder_append(sb, int_to_string((i16)va_arg(list, i32)));
+        str_builder_append(sb, int_to_string((i16)va_arg(*list, i32)));
     else if (cstr_equal(spec, "i32"))
-        str_builder_append(sb, int_to_string((i32)va_arg(list, i32)));
+        str_builder_append(sb, int_to_string((i32)va_arg(*list, i32)));
     else if (cstr_equal(spec, "i64"))
-        str_builder_append(sb, int_to_string((i64)va_arg(list, i64)));
+        str_builder_append(sb, int_to_string((i64)va_arg(*list, i64)));
 
     // Unsigned int
     else if (cstr_equal(spec, "u8"))
-        str_builder_append(sb, uint_to_string((u8)va_arg(list, u64)));
+        str_builder_append(sb, uint_to_string((u8)va_arg(*list, u64)));
     else if (cstr_equal(spec, "u16"))
-        str_builder_append(sb, uint_to_string((u16)va_arg(list, u64)));
+        str_builder_append(sb, uint_to_string((u16)va_arg(*list, u64)));
     else if (cstr_equal(spec, "u32"))
-        str_builder_append(sb, uint_to_string((u32)va_arg(list, u64)));
+        str_builder_append(sb, uint_to_string((u32)va_arg(*list, u64)));
     else if (cstr_equal(spec, "u64"))
-        str_builder_append(sb, uint_to_string((u64)va_arg(list, u64)));
+        str_builder_append(sb, uint_to_string((u64)va_arg(*list, u64)));
 
     // Unknown specifier
     else
@@ -925,12 +927,12 @@ static void _append_specifier(StringBuilder *sb, char *spec, va_list list)
 
 #define _MAX_SPECIFIER 8
 
-String _fmt(const char *format, va_list args)
+String _fmt(const char *format, va_list *args)
 {
     assert_not_null(format, "_fmt: format is NULL");
 
     StringBuilder sb = str_builder_new(get_temporary_allocator());
-    String fmt_s = _STRING((char*)format);
+    String fmt_s = _STRING((char *)format);
 
     for (u64 i = 0; i < fmt_s.length; i++)
     {
@@ -964,7 +966,7 @@ String fmt(const char *format, ...)
 
     va_list args;
     va_start(args, format);
-    String f = _fmt(format, args);
+    String f = _fmt(format, &args);
     va_end(args);
 
     return f;
@@ -974,16 +976,16 @@ void out(const char *format, ...)
 {
     if (format == NULL)
     {
-        os_write_out((u8*)"(NULL)\n", 7);
+        os_write_out((u8 *)"(NULL)\n", 7);
         return;
     }
 
     va_list args;
     va_start(args, format);
 
-    String output = _fmt(format, args);
-    os_write_out((u8*)output.s, output.length);
-    os_write_out((u8*)"\n", 1);
+    String output = _fmt(format, &args);
+    os_write_out((u8 *)output.s, output.length);
+    os_write_out((u8 *)"\n", 1);
 
     va_end(args);
 }
@@ -992,15 +994,15 @@ void out_no_newline(const char *format, ...)
 {
     if (format == NULL)
     {
-        os_write_out((u8*)"(NULL)", 6);
+        os_write_out((u8 *)"(NULL)", 6);
         return;
     }
 
     va_list args;
     va_start(args, format);
 
-    String output = _fmt(format, args);
-    os_write_out((u8*)output.s, output.length);
+    String output = _fmt(format, &args);
+    os_write_out((u8 *)output.s, output.length);
 
     va_end(args);
 }
@@ -1009,10 +1011,14 @@ void out_no_newline(const char *format, ...)
 
 String get_username(void)
 {
+#if defined(OS_LINUX)
     char *uname = getlogin();
     if (uname == NULL)
         return ERROR_STRING;
     return str_temp(uname);
+#endif
+
+    return ERROR_STRING;
 }
 
 String path_root(void)
@@ -1055,7 +1061,7 @@ String path_get_filename(String path)
     if (pos == -1)
         pos = 0;
 
-    return str_view(path, (u64)pos+1, path.length);
+    return str_view(path, (u64)pos + 1, path.length);
 }
 
 String path_get_extension(String path)
@@ -1065,7 +1071,7 @@ String path_get_extension(String path)
     if (pos == -1)
         return ERROR_STRING;
 
-    return str_view(filename, (u64)pos+1, filename.length);
+    return str_view(filename, (u64)pos + 1, filename.length);
 }
 
 String path_back_dir(String path)
@@ -1091,7 +1097,7 @@ String path_concat(String path, String other)
 
     StringBuilder sb = str_builder_new(get_temporary_allocator());
 
-    bool end_slash = path.s[path.length-1] == '/' || path.s[path.length-1] == '\\';
+    bool end_slash = path.s[path.length - 1] == '/' || path.s[path.length - 1] == '\\';
     bool start_slash = other.s[0] == '/' || other.s[0] == '\\';
 
     if (end_slash && start_slash)
@@ -1111,6 +1117,9 @@ File file_open_s(String path, FilePermission perm, bool create_if_absent, bool t
     if (path.err)
         return ERROR_FILE;
 
+    File file = ERROR_FILE;
+
+#if defined(OS_LINUX)
     int o_flags = 0;
 
     if (perm == PERM_READ)
@@ -1141,7 +1150,7 @@ File file_open_s(String path, FilePermission perm, bool create_if_absent, bool t
     if (stat(path.s, &s) != 0)
         return ERROR_FILE;
 
-    File file = {
+    file = {
         .fd = fd,
         .path = path,
 
@@ -1153,13 +1162,18 @@ File file_open_s(String path, FilePermission perm, bool create_if_absent, bool t
         .readable = perm == PERM_READWRITE || perm == PERM_READ,
         .err = false,
     };
+#elif defined(OS_WINDOWS)
+    (void)perm;
+    (void)create_if_absent;
+    (void)truncate;
+#endif
 
     return file;
 }
 
 File file_open(const char *path, FilePermission perm, bool create_if_absent, bool truncate)
 {
-    return file_open_s(str_temp((char*)path), perm, create_if_absent, truncate);
+    return file_open_s(str_temp((char *)path), perm, create_if_absent, truncate);
 }
 
 void file_close(File *f)
@@ -1184,7 +1198,9 @@ Bytes file_read(File f, Allocator a, u64 size)
     if (buffer == NULL)
         return ERROR_BYTES;
 
-    ssize_t n = read(f.fd, buffer, size);
+    // TODO: This needs to loop to actually read the full requested size as
+    // read may return early.
+    ssize_t n = read(f.fd, buffer, (u32)size);
     if (n < 0)
         return ERROR_BYTES;
 
@@ -1208,7 +1224,8 @@ void file_write(File f, u8 *bytes, u64 size)
     if (f.err || bytes == NULL)
         return;
 
-    ssize_t n = write(f.fd, bytes, size);
+    // TODO: same as read, write until full size is written
+    ssize_t n = write(f.fd, bytes, (u32)size);
     if (n < 0)
         return; // handle error
 }
@@ -1224,7 +1241,7 @@ void file_write_str(File f, String s)
 {
     if (f.err || s.err)
         return;
-    file_write(f, (u8*)s.s, s.length);
+    file_write(f, (u8 *)s.s, s.length);
 }
 
 void file_write_all(const char *path, u8 *bytes, u64 length)
@@ -1248,12 +1265,13 @@ Dir dir_read_s(String path, Allocator a)
     if (path.err)
         return ERROR_DIR;
 
-    DIR *dir = opendir(path.s);
-    if (dir == NULL)
-        return ERROR_DIR;
-
     SparseList list = sparse_list_new(sizeof(DirEntry), 16, a);
     if (list.err)
+        return ERROR_DIR;
+
+#if defined(OS_LINUX)
+    DIR *dir = opendir(path.s);
+    if (dir == NULL)
         return ERROR_DIR;
 
     struct dirent *entry = NULL;
@@ -1277,6 +1295,7 @@ Dir dir_read_s(String path, Allocator a)
     }
 
     closedir(dir);
+#endif
 
     if (list.err)
         return ERROR_DIR;
@@ -1292,7 +1311,7 @@ Dir dir_read_s(String path, Allocator a)
 
 Dir dir_read(const char *path, Allocator a)
 {
-    return dir_read_s(str_temp((char*)path), a);
+    return dir_read_s(str_temp((char *)path), a);
 }
 
 void free_dir(Dir *dir)
@@ -1341,7 +1360,7 @@ void sparse_list_append(SparseList *list, void *item)
         list->mem = ptr;
     }
 
-    u8 *dest = (u8*)list->mem + (list->size * list->item_size);
+    u8 *dest = (u8 *)list->mem + (list->size * list->item_size);
     copy_memory(dest, item, list->item_size);
     list->size++;
 }
@@ -1353,7 +1372,7 @@ void *sparse_list_get(SparseList *list, u64 index)
     if (list->err || index >= list->size)
         return NULL;
 
-    return (u8*)list->mem + (index * list->item_size);
+    return (u8 *)list->mem + (index * list->item_size);
 }
 
 void sparse_list_remove(SparseList *list, u64 index)
@@ -1365,7 +1384,7 @@ void sparse_list_remove(SparseList *list, u64 index)
 
     // Put last element at index and reduce size
     u8 *dest = sparse_list_get(list, index);
-    u8 *src = sparse_list_get(list, list->size-1);
+    u8 *src = sparse_list_get(list, list->size - 1);
     copy_memory(dest, src, list->item_size);
 
     list->size--;
@@ -1383,10 +1402,10 @@ void _cmd(const char *arg1, ...)
     StringBuilder sb = str_builder_new(get_temporary_allocator());
     char *s = NULL;
 
-    str_builder_append_cstr(&sb, (char*)arg1);
+    str_builder_append_cstr(&sb, (char *)arg1);
     str_builder_append_char(&sb, ' ');
 
-    while ((s = va_arg(list, char*)) != NULL)
+    while ((s = va_arg(list, char *)) != NULL)
     {
         str_builder_append_cstr(&sb, s);
         str_builder_append_char(&sb, ' ');
@@ -1395,12 +1414,14 @@ void _cmd(const char *arg1, ...)
     va_end(list);
     String args = str_builder_to_string(&sb);
 
+#if defined(OS_LINUX)
     if (fork() == 0)
     {
         // As child, execute command
         execl("/bin/sh", "sh", "-c", args.s, NULL);
         os_exit(0);
     }
+#endif
 
     out("cmd: {S}", args);
 }
@@ -1412,7 +1433,7 @@ void cmd_fmt(const char *format, ...)
     va_list args;
     va_start(args, format);
 
-    String s = _fmt(format, args);
+    String s = _fmt(format, &args);
     va_end(args);
 
     if (s.err)
@@ -1429,9 +1450,9 @@ void run_cmd_for_each_file_in_dir(const char *cmd, const char *path, const char 
         return;
 
     run_cmd_for_each_file_in_dir_s(
-            str_temp((char*)cmd),
-            str_temp((char*)path),
-            str_temp((char*)extension));
+        str_temp((char *)cmd),
+        str_temp((char *)path),
+        str_temp((char *)extension));
 }
 
 void run_cmd_for_each_file_in_dir_s(String command, String path, String extension)
@@ -1461,5 +1482,3 @@ void run_cmd_for_each_file_in_dir_s(String command, String path, String extensio
         cmd_fmt(command.s, entry.name, NULL, NULL, NULL);
     }
 }
-
-

@@ -59,7 +59,7 @@ void alloc_free(Allocator a, void *p);
 // Heap allocator
 
 // Currently a wrapper for malloc. Will soon change to a custom heap allocator.
-Allocator get_heap_allocator();
+Allocator get_heap_allocator(void);
 // Allocates memory with heap allocator. Returns NULL if allocation fails.
 void *heap_alloc(u64 size);
 // Same as `heap_alloc`, but zeroes memory as well.
@@ -78,9 +78,9 @@ void heap_free(void *ptr);
 // memory with a scoped lifetime. You can reset the allocator to 0 with
 // `reset_temp_memory()`. The temp allocator cannot free memory, but has
 // `mark()` and `restore()` to push and pop chunks off the allocator stack.
-Allocator get_temporary_allocator();
+Allocator get_temporary_allocator(void);
 // Resets the temporary memory back to size 0.
-void reset_temp_memory();
+void reset_temp_memory(void);
 // Allocates memory using the temporary allocator. Returns NULL if the
 // allocation fails.
 void *temp_alloc(u64 size);
@@ -91,7 +91,7 @@ void *temp_realloc(void *p, u64 size);
 // Create a mark in the temporary allocator that can be returned to later.
 // This should be used for allocations that don't leave the current scope.
 // Returns the mark ID, restore with `temo_restore_mark()`.
-u64 temp_mark();
+u64 temp_mark(void);
 // Restores to mark ID. Any memory allocated after the mark will be discarded.
 void temp_restore_mark(u64 id);
 
@@ -222,11 +222,11 @@ typedef struct StringBuilder
 } StringBuilder;
 
 #define ERROR_STRING_BUILDER ((StringBuilder){ \
-        .size = 0,                             \
-        .length = 0,                           \
-        .mem = NULL,                           \
-        .err = true,                           \
-    })
+    .size = 0,                                 \
+    .length = 0,                               \
+    .mem = NULL,                               \
+    .err = true,                               \
+})
 
 // Returns a new allocated string builder. Returns ERROR_STRING_BUILDER if
 // allocation fails.
@@ -288,9 +288,9 @@ Bytes os_read_all_input(Allocator a);
 // Files
 
 // Get the path to root on the system.
-String path_root();
+String path_root(void);
 // Get the path to the home dir of the current user.
-String path_home();
+String path_home(void);
 // Get the file name from the path. Returns ERROR_STRING if path is malformed.
 String path_get_filename(String path);
 // Get the file extension from the path.
@@ -367,8 +367,8 @@ typedef struct DirEntry
     bool is_dir;
     bool is_symlink;
 
-    bool is_current_dir;  // Is "."
-    bool is_parent_dir;   // Is ".."
+    bool is_current_dir; // Is "."
+    bool is_parent_dir;  // Is ".."
 } DirEntry;
 
 typedef struct Dir
@@ -444,17 +444,15 @@ void run_cmd_for_each_file_in_dir_s(String command, String path, String extensio
 // Defines
 
 #if defined(__linux__)
-    #define OS_LINUX
-    #define OS_NAME "linux"
-    #define os_is_linux() 1
-    #define os_is_windows() 0
+#define OS_LINUX
+#define OS_NAME "linux"
+#define os_is_linux() 1
+#define os_is_windows() 0
 #elif defined(_WIN32) || defined(_WIN64)
-    #define OS_WINDOWS
-    #define OS_NAME "windows"
-    #define os_is_linux() 0
-    #define os_is_windows() 1
-    #error "windows is not currently supported by buddy"
+#define OS_WINDOWS
+#define OS_NAME "windows"
+#define os_is_linux() 0
+#define os_is_windows() 1
 #else
-    #error "OS is unknown and therefore not supported by buddy"
+#error "OS is unknown and therefore not supported by buddy"
 #endif
-
