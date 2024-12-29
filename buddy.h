@@ -382,9 +382,10 @@ typedef struct Dir
 
 #define ERROR_DIR ((Dir){.err = true, .path = ERROR_STRING, .num_entries = 0})
 
-void dir_new(const char *name);
-void dir_new_s(String name);
-
+// Create new directory with default permissions. Returns false on failure.
+bool dir_new(const char *name);
+// Create new directory with default permissions. Returns false on failure.
+bool dir_new_s(String name);
 // Read directory contents. Returns list of entries allocated with given
 // allocator. Returns ERROR_DIR on error. Free with free_dir().
 Dir dir_read(const char *path, Allocator a);

@@ -1288,16 +1288,16 @@ static mode_t _get_linux_dir_permissions(void)
     return 0777 & ~original_umask;
 }
 
-void dir_new(const char *name)
+bool dir_new(const char *name)
 {
-    dir_new_s(str_temp((char *)name));
+    return dir_new_s(str_temp((char *)name));
 }
 
-void dir_new_s(String name)
+bool dir_new_s(String name)
 {
     // TODO: windows impl new dir
 #if defined(OS_LINUX)
-    mkdir(name.s, _get_linux_dir_permissions());
+    return mkdir(name.s, _get_linux_dir_permissions()) == 0;
 #endif
 }
 
