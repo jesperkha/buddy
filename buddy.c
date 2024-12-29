@@ -1,6 +1,5 @@
 #include "buddy.h"
 
-#include <complex.h>
 #include <stdarg.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -17,10 +16,11 @@
 
 // :utils
 
-#define panic(msg)          \
-    {                       \
-        out("buddy: " msg); \
-        os_exit(1);         \
+#define panic(msg)                         \
+    {                                      \
+        char *m = "buddy: " msg "\n";      \
+        os_write_err((u8*)m, cstr_len(m)); \
+        os_exit(1);                        \
     }
 
 // Root of all evil, internal only
@@ -117,7 +117,10 @@ static void *temporary_allocator_proc(Allocator a, AllocatorMessage msg, u64 siz
     {
         u64 actual_size = size + sizeof(BlockHeader);
         if ((u64)(_temp_alloc_head - _temp_alloc_buffer) + actual_size > TEMP_ALLOC_BUFSIZE)
+        {
+            panic("temporary allocation buffer is full");
             return NULL;
+        }
 
         // Get and align pointer
         u8 *head = _temp_alloc_head;
@@ -780,6 +783,7 @@ void _os_flush_output(void)
 
 void _os_flush_input(void)
 {
+    // TODO: windows impl flush input
 #if defined(OS_LINUX)
     char buffer[64];
 
@@ -969,6 +973,9 @@ String fmt(const char *format, ...)
     String f = _fmt(format, &args);
     va_end(args);
 
+    if (f.err)
+        return ERROR_STRING;
+
     return f;
 }
 
@@ -984,10 +991,13 @@ void out(const char *format, ...)
     va_start(args, format);
 
     String output = _fmt(format, &args);
+    va_end(args);
+
+    if (output.err)
+        return;
+
     os_write_out((u8 *)output.s, output.length);
     os_write_out((u8 *)"\n", 1);
-
-    va_end(args);
 }
 
 void out_no_newline(const char *format, ...)
@@ -1002,15 +1012,19 @@ void out_no_newline(const char *format, ...)
     va_start(args, format);
 
     String output = _fmt(format, &args);
-    os_write_out((u8 *)output.s, output.length);
-
     va_end(args);
+
+    if (output.err)
+        return;
+
+    os_write_out((u8 *)output.s, output.length);
 }
 
 // :path
 
 String get_username(void)
 {
+    // TODO: windows impl get username
 #if defined(OS_LINUX)
     char *uname = getlogin();
     if (uname == NULL)
@@ -1112,6 +1126,15 @@ String path_concat(String path, String other)
     return str_builder_to_string(&sb);
 }
 
+// :file
+
+int _get_linux_file_permissions(void)
+{
+    mode_t original_umask = umask(0);
+    umask(original_umask);
+    return 0666 & ~original_umask;
+}
+
 File file_open_s(String path, FilePermission perm, bool create_if_absent, bool truncate)
 {
     if (path.err)
@@ -1119,6 +1142,7 @@ File file_open_s(String path, FilePermission perm, bool create_if_absent, bool t
 
     File file = ERROR_FILE;
 
+    // TODO: windows impl open file
 #if defined(OS_LINUX)
     int o_flags = 0;
 
@@ -1139,10 +1163,7 @@ File file_open_s(String path, FilePermission perm, bool create_if_absent, bool t
     if (truncate)
         o_flags |= O_TRUNC;
 
-    // rw rw r
-    int file_mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH;
-
-    int fd = open(path.s, o_flags, file_mode);
+    int fd = open(path.s, o_flags, _get_linux_file_permissions());
     if (fd < 0)
         return ERROR_FILE;
 
@@ -1260,6 +1281,26 @@ void file_append_all(const char *path, u8 *bytes, u64 length)
 
 // :directory
 
+static mode_t _get_linux_dir_permissions(void)
+{
+    mode_t original_umask = umask(0);
+    umask(original_umask);
+    return 0777 & ~original_umask;
+}
+
+void dir_new(const char *name)
+{
+    dir_new_s(str_temp((char *)name));
+}
+
+void dir_new_s(String name)
+{
+    // TODO: windows impl new dir
+#if defined(OS_LINUX)
+    mkdir(name.s, _get_linux_dir_permissions());
+#endif
+}
+
 Dir dir_read_s(String path, Allocator a)
 {
     if (path.err)
@@ -1269,6 +1310,7 @@ Dir dir_read_s(String path, Allocator a)
     if (list.err)
         return ERROR_DIR;
 
+    // TODO: windows impl read dir
 #if defined(OS_LINUX)
     DIR *dir = opendir(path.s);
     if (dir == NULL)
@@ -1414,6 +1456,7 @@ void _cmd(const char *arg1, ...)
     va_end(list);
     String args = str_builder_to_string(&sb);
 
+    // TODO: windows impl run shell command
 #if defined(OS_LINUX)
     if (fork() == 0)
     {
@@ -1482,3 +1525,4 @@ void run_cmd_for_each_file_in_dir_s(String command, String path, String extensio
         cmd_fmt(command.s, entry.name, NULL, NULL, NULL);
     }
 }
+

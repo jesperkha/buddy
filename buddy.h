@@ -382,6 +382,9 @@ typedef struct Dir
 
 #define ERROR_DIR ((Dir){.err = true, .path = ERROR_STRING, .num_entries = 0})
 
+void dir_new(const char *name);
+void dir_new_s(String name);
+
 // Read directory contents. Returns list of entries allocated with given
 // allocator. Returns ERROR_DIR on error. Free with free_dir().
 Dir dir_read(const char *path, Allocator a);
@@ -456,3 +459,4 @@ void run_cmd_for_each_file_in_dir_s(String command, String path, String extensio
 #else
 #error "OS is unknown and therefore not supported by buddy"
 #endif
+
