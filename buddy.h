@@ -285,7 +285,7 @@ Bytes os_read_input(u8 *buffer, u64 max_length);
 // given allocator. Returns ERROR_BYTES on allocation fail or failed read.
 Bytes os_read_all_input(Allocator a);
 
-// Files
+// Path
 
 // Get the path to root on the system.
 String path_root(void);
@@ -307,6 +307,18 @@ String path_to_windows(String path);
 // string for convenience.
 String path_to_unix(String path);
 
+// Files
+
+typedef struct FileInfo
+{
+    u64 size;
+    u64 size_on_disk; // Aligned to disk page size
+    u64 last_modified;
+    bool err;
+} FileInfo;
+
+#define ERROR_FILE_INFO ((FileInfo){.err = true})
+
 typedef enum FilePermission
 {
     PERM_WRITE,
@@ -317,11 +329,9 @@ typedef enum FilePermission
 
 typedef struct File
 {
-    i32 fd;
     String path;
-
-    u64 size;
-    u64 size_on_disk; // Aligned to disk page size
+    FileInfo info;
+    i32 fd;
 
     bool open;
     bool writeable;
@@ -330,7 +340,7 @@ typedef struct File
     bool err;
 } File;
 
-#define ERROR_FILE ((File){.err = true, .fd = -1, .size = 0, .open = false})
+#define ERROR_FILE ((File){.err = true, .fd = -1, .open = false})
 
 // Open a file with the given permissions. Returns ERROR_FILE on error.
 File file_open(const char *path, FilePermission perm, bool create_if_absent, bool truncate);
@@ -356,6 +366,10 @@ void file_write_all(const char *path, u8 *bytes, u64 length);
 // Opens file and appends bytes to end before closing. Creates new file if it
 // doesnt already exist.
 void file_append_all(const char *path, u8 *bytes, u64 length);
+// Get file info without opening file.
+FileInfo file_get_info(const char *path);
+// Get file info without opening file.
+FileInfo file_get_info_s(String path);
 
 // Directories
 

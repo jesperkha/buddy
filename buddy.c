@@ -853,8 +853,8 @@ static void _format_file(StringBuilder *sb, File f)
     str_builder_append_cstr(sb, "File {\n");
     str_builder_append(sb, fmt("    .fd = {i32}\n", f.fd));
     str_builder_append(sb, fmt("    .path = {S}\n", f.path));
-    str_builder_append(sb, fmt("    .size = {u64}\n", f.size));
-    str_builder_append(sb, fmt("    .size_on_disk = {u64}\n", f.size_on_disk));
+    str_builder_append(sb, fmt("    .size = {u64}\n", f.info.size));
+    str_builder_append(sb, fmt("    .size_on_disk = {u64}\n", f.info.size_on_disk));
     str_builder_append(sb, fmt("    .open = {b}\n", f.open));
     str_builder_append(sb, fmt("    .writeable = {b}\n", f.writeable));
     str_builder_append(sb, fmt("    .readable = {b}\n", f.readable));
@@ -1128,6 +1128,27 @@ String path_concat(String path, String other)
 
 // :file
 
+FileInfo file_get_info(const char *path)
+{
+    return file_get_info_s(str_temp((char *)path));
+}
+
+FileInfo file_get_info_s(String path)
+{
+    if (path.err)
+        return ERROR_FILE_INFO;
+
+    struct stat s;
+    if (stat(path.s, &s) != 0)
+        return ERROR_FILE_INFO;
+
+    return (FileInfo){
+        .size = (u64)s.st_size,
+        .size_on_disk = (u64)(s.st_blksize * s.st_blocks),
+        .last_modified = (u64)s.st_mtim.tv_sec,
+    };
+}
+
 int _get_linux_file_permissions(void)
 {
     mode_t original_umask = umask(0);
@@ -1139,8 +1160,6 @@ File file_open_s(String path, FilePermission perm, bool create_if_absent, bool t
 {
     if (path.err)
         return ERROR_FILE;
-
-    File file = ERROR_FILE;
 
     // TODO: windows impl open file
 #if defined(OS_LINUX)
@@ -1167,29 +1186,20 @@ File file_open_s(String path, FilePermission perm, bool create_if_absent, bool t
     if (fd < 0)
         return ERROR_FILE;
 
-    struct stat s;
-    if (stat(path.s, &s) != 0)
+    FileInfo info = file_get_info_s(path);
+    if (info.err)
         return ERROR_FILE;
 
-    file = (File){
+    return (File){
         .fd = fd,
         .path = path,
-
-        .size = (u64)s.st_size,
-        .size_on_disk = (u64)(s.st_blksize * s.st_blocks),
-
         .open = true,
+        .info = info,
         .writeable = perm == PERM_WRITE || perm == PERM_APPEND || perm == PERM_READWRITE,
         .readable = perm == PERM_READWRITE || perm == PERM_READ,
         .err = false,
     };
-#elif defined(OS_WINDOWS)
-    (void)perm;
-    (void)create_if_absent;
-    (void)truncate;
 #endif
-
-    return file;
 }
 
 File file_open(const char *path, FilePermission perm, bool create_if_absent, bool truncate)
@@ -1235,7 +1245,7 @@ Bytes file_read(File f, Allocator a, u64 size)
 Bytes file_read_all(const char *path, Allocator a)
 {
     File f = file_open(path, PERM_READ, false, false);
-    Bytes b = file_read(f, a, f.size);
+    Bytes b = file_read(f, a, f.info.size);
     file_close(&f);
     return b;
 }
