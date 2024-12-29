@@ -1150,7 +1150,7 @@ File file_open_s(String path, FilePermission perm, bool create_if_absent, bool t
     if (stat(path.s, &s) != 0)
         return ERROR_FILE;
 
-    file = {
+    file = (File){
         .fd = fd,
         .path = path,
 
