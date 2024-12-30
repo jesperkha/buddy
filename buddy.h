@@ -25,7 +25,7 @@ typedef u64 uptr;
 // Zeroes out memory. Size is in BYTES.
 void zero_memory(void *p, u64 size);
 // Copies memory from source to dest. Size is in BYTES.
-void copy_memory(void *dest, void *source, u64 size);
+void copy_memory(void *dest, const void *source, u64 size);
 
 // Allocators
 
@@ -162,13 +162,13 @@ String uint_to_string(u64 n);
 uint cstr_len(const char *s);
 // Allocates a new string using the temporary allocator. See `str_alloc` to use
 // a custom allocator. Returns ERROR_STRING if allocation fails or s is NULL.
-String str_temp(char *s);
+String str_temp(const char *s);
 // Allocates and returns a copy of the string using allocator. Returns
 // ERROR_STRING if allocation fails or s har an error.
 String str_alloc(Allocator a, String s);
 // Allocates and returns a copy of the string using allocator. Returns
 // ERROR_STRING if allocation fails.
-String str_alloc_cstr(Allocator a, char *s);
+String str_alloc_cstr(Allocator a, const char *s);
 // Returns a copy of the string allocated using temporary allocator.
 String str_copy(String s);
 // Returns a copy of the string allocated with a.
@@ -181,7 +181,7 @@ String str_view(String s, u64 start, u64 end);
 // an error.
 bool str_equal(String a, String b);
 // Returns true if both strings are equal.
-bool cstr_equal(char *a, char *b);
+bool cstr_equal(const char *a, const char *b);
 // Returns count of character c in string s.
 uint str_count(String s, char c);
 // Converts the original string s to uppercase, returns the same string for
@@ -237,9 +237,9 @@ void free_string_builder(StringBuilder sb);
 // has an error or internal reallocation fails.
 bool str_builder_append(StringBuilder *sb, String s);
 // Appends null-termiated string to string builder.
-bool str_builder_append_cstr(StringBuilder *sb, char *s);
+bool str_builder_append_cstr(StringBuilder *sb, const char *s);
 // Appends bytes to string builder.
-bool str_builder_append_bytes(StringBuilder *sb, u8 *bytes, u64 length);
+bool str_builder_append_bytes(StringBuilder *sb, const u8 *bytes, u64 length);
 // Appends character to string builder.
 bool str_builder_append_char(StringBuilder *sb, char c);
 // Returns the string builder as a string.
@@ -275,9 +275,9 @@ String get_username(void);
 // Exit program with status. Flushes standard input and output.
 void os_exit(u8 status);
 // Write bytes to standard output.
-void os_write_out(u8 *bytes, u64 length);
+void os_write_out(const u8 *bytes, u64 length);
 // Write bytes to standard error output.
-void os_write_err(u8 *bytes, u64 length);
+void os_write_err(const u8 *bytes, u64 length);
 // Returns bytes read from standard input, with the bytes pointer pointing to
 // the given buffer. Returns ERROR_BYTES on failed read.
 Bytes os_read_input(u8 *buffer, u64 max_length);
@@ -358,23 +358,23 @@ Bytes file_read_all(const char *path, Allocator a);
 // error.
 Bytes file_read_all_s(String path, Allocator a);
 // Write bytes to file. Returns true on success.
-bool file_write(File f, u8 *bytes, u64 size);
+bool file_write(File f, const u8 *bytes, u64 size);
 // Write bytes to file. Returns true on success.
 bool file_write_arr(File f, Bytes bytes);
 // Write string to file. Returns true on success.
 bool file_write_str(File f, String s);
 // Opens file and writes bytes before closing. Truncates file and creates new
 // if it doesnt already exist. Returns true on success.
-bool file_write_all(const char *path, u8 *bytes, u64 length);
+bool file_write_all(const char *path, const u8 *bytes, u64 length);
 // Opens file and writes bytes before closing. Truncates file and creates new
 // if it doesnt already exist. Returns true on success.
-bool file_write_all_s(String path, u8 *bytes, u64 length);
+bool file_write_all_s(String path, const u8 *bytes, u64 length);
 // Opens file and appends bytes to end before closing. Creates new file if it
 // doesnt already exist. Returns true on success.
-bool file_append_all(const char *path, u8 *bytes, u64 length);
+bool file_append_all(const char *path, const u8 *bytes, u64 length);
 // Opens file and appends bytes to end before closing. Creates new file if it
 // doesnt already exist. Returns true on success.
-bool file_append_all_s(String path, u8 *bytes, u64 length);
+bool file_append_all_s(String path, const u8 *bytes, u64 length);
 // Get file info without opening file.
 FileInfo file_get_info(const char *path);
 // Get file info without opening file.
@@ -446,7 +446,7 @@ typedef List SparseList; // Unordered list with fast remove
 // Returns ERROR_LIST if allocation fails.
 SparseList sparse_list_new(u64 item_size, u64 length, Allocator a);
 // Appends item to end of list. Panics if list or item is null.
-void sparse_list_append(SparseList *list, void *item);
+void sparse_list_append(SparseList *list, const void *item);
 // Get a pointer to the item at index. Returns NULL if index is out of bounds.
 // Panics is list is null.
 void *sparse_list_get(SparseList *list, u64 index);

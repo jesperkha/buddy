@@ -41,7 +41,7 @@ void zero_memory(void *p, u64 size)
         ((u8 *)p)[i] = 0;
 }
 
-void copy_memory(void *dest, void *source, u64 size)
+void copy_memory(void *dest, const void *source, u64 size)
 {
     assert_not_null(dest, "copy_memory: destination is NULL");
     assert_not_null(source, "copy_memory: source is NULL");
@@ -449,7 +449,7 @@ String str_view(String s, u64 start, u64 end)
     };
 }
 
-String str_temp(char *s)
+String str_temp(const char *s)
 {
     return str_alloc_cstr(get_temporary_allocator(), s);
 }
@@ -483,7 +483,7 @@ String str_alloc(Allocator a, String s)
     };
 }
 
-String str_alloc_cstr(Allocator a, char *s)
+String str_alloc_cstr(Allocator a, const char *s)
 {
     if (s == NULL)
         return ERROR_STRING;
@@ -493,7 +493,7 @@ String str_alloc_cstr(Allocator a, char *s)
     if (mem == NULL)
         return ERROR_STRING;
 
-    copy_memory(mem, s, len);
+    copy_memory(mem, (void*)s, len);
     mem[len] = 0; // Make sure is null termiated
 
     return (String){
@@ -549,11 +549,11 @@ bool str_equal(String a, String b)
     return true;
 }
 
-bool cstr_equal(char *a, char *b)
+bool cstr_equal(const char *a, const char *b)
 {
     assert_not_null(a, "cstr_equal: a is NULL");
     assert_not_null(b, "cstr_equal: b is NULL");
-    return str_equal(_STRING(a), _STRING(b));
+    return str_equal(_STRING((char *)a), _STRING((char *)b));
 }
 
 String str_replace_char(String s, char old, char new_c)
@@ -651,10 +651,10 @@ bool str_builder_append(StringBuilder *sb, String s)
     return str_builder_append_bytes(sb, (u8 *)s.s, s.length);
 }
 
-bool str_builder_append_cstr(StringBuilder *sb, char *s)
+bool str_builder_append_cstr(StringBuilder *sb, const char *s)
 {
     assert_not_null(s, "str_builder_append_cstr: s is NULL");
-    return str_builder_append(sb, _STRING(s));
+    return str_builder_append(sb, _STRING((char *)s));
 }
 
 bool str_builder_append_char(StringBuilder *sb, char c)
@@ -663,7 +663,7 @@ bool str_builder_append_char(StringBuilder *sb, char c)
     return str_builder_append_bytes(sb, &b, 1);
 }
 
-bool str_builder_append_bytes(StringBuilder *sb, u8 *bytes, u64 length)
+bool str_builder_append_bytes(StringBuilder *sb, const u8 *bytes, u64 length)
 {
     assert_not_null(sb, "str_builder_append_bytes: sb is NULL");
     assert_not_null(bytes, "str_builder_append_bytes: bytes is NULL");
@@ -687,7 +687,7 @@ bool str_builder_append_bytes(StringBuilder *sb, u8 *bytes, u64 length)
         sb->size = new_size;
     }
 
-    copy_memory(sb->mem + sb->length, bytes, length);
+    copy_memory(sb->mem + sb->length, (void *)bytes, length);
     sb->length += length;
     return true;
 }
@@ -705,13 +705,13 @@ String str_builder_to_string(StringBuilder *sb)
 
 // :os
 
-void os_write_out(u8 *bytes, u64 length)
+void os_write_out(const u8 *bytes, u64 length)
 {
     assert_not_null(bytes, "os_write_out: bytes is NULL");
     write(STDOUT_FILENO, bytes, (u32)length);
 }
 
-void os_write_err(u8 *bytes, u64 length)
+void os_write_err(const u8 *bytes, u64 length)
 {
     assert_not_null(bytes, "os_write_err: bytes is NULL");
     write(STDOUT_FILENO, bytes, (u32)length);
@@ -1146,7 +1146,7 @@ bool file_move_s(String path, String dest)
 
 bool file_copy(const char *path, const char *dest, Allocator a)
 {
-    return file_copy_s(str_temp((char *)path), str_temp((char *)dest), a);
+    return file_copy_s(str_temp(path), str_temp(dest), a);
 }
 
 bool file_copy_s(String path, String dest, Allocator a)
@@ -1160,7 +1160,7 @@ bool file_copy_s(String path, String dest, Allocator a)
 
 FileInfo file_get_info(const char *path)
 {
-    return file_get_info_s(str_temp((char *)path));
+    return file_get_info_s(str_temp(path));
 }
 
 FileInfo file_get_info_s(String path)
@@ -1234,7 +1234,7 @@ File file_open_s(String path, FilePermission perm, bool create_if_absent, bool t
 
 File file_open(const char *path, FilePermission perm, bool create_if_absent, bool truncate)
 {
-    return file_open_s(str_temp((char *)path), perm, create_if_absent, truncate);
+    return file_open_s(str_temp(path), perm, create_if_absent, truncate);
 }
 
 void file_close(File *f)
@@ -1288,7 +1288,7 @@ Bytes file_read_all(const char *path, Allocator a)
     return b;
 }
 
-bool file_write(File f, u8 *bytes, u64 size)
+bool file_write(File f, const u8 *bytes, u64 size)
 {
     if (f.err || bytes == NULL)
         return false;
@@ -1314,7 +1314,7 @@ bool file_write_str(File f, String s)
     return file_write(f, (u8 *)s.s, s.length);
 }
 
-bool file_write_all_s(String path, u8 *bytes, u64 length)
+bool file_write_all_s(String path, const u8 *bytes, u64 length)
 {
     if (path.err)
         return false;
@@ -1322,7 +1322,7 @@ bool file_write_all_s(String path, u8 *bytes, u64 length)
     return file_write_all(path.s, bytes, length);
 }
 
-bool file_write_all(const char *path, u8 *bytes, u64 length)
+bool file_write_all(const char *path, const u8 *bytes, u64 length)
 {
     File f = file_open(path, PERM_WRITE, true, true);
     bool success = file_write(f, bytes, length);
@@ -1330,7 +1330,7 @@ bool file_write_all(const char *path, u8 *bytes, u64 length)
     return success;
 }
 
-bool file_append_all(const char *path, u8 *bytes, u64 length)
+bool file_append_all(const char *path, const u8 *bytes, u64 length)
 {
     File f = file_open(path, PERM_APPEND, true, false);
     bool success = file_write(f, bytes, length);
@@ -1338,7 +1338,7 @@ bool file_append_all(const char *path, u8 *bytes, u64 length)
     return success;
 }
 
-bool file_append_all_s(String path, u8 *bytes, u64 length)
+bool file_append_all_s(String path, const u8 *bytes, u64 length)
 {
     if (path.err)
         return false;
@@ -1357,7 +1357,7 @@ static mode_t _get_linux_dir_permissions(void)
 
 bool dir_new(const char *name)
 {
-    return dir_new_s(str_temp((char *)name));
+    return dir_new_s(str_temp(name));
 }
 
 bool dir_new_s(String name)
@@ -1420,7 +1420,7 @@ Dir dir_read_s(String path, Allocator a)
 
 Dir dir_read(const char *path, Allocator a)
 {
-    return dir_read_s(str_temp((char *)path), a);
+    return dir_read_s(str_temp(path), a);
 }
 
 void free_dir(Dir *dir)
@@ -1453,7 +1453,7 @@ SparseList sparse_list_new(u64 item_size, u64 length, Allocator a)
     };
 }
 
-void sparse_list_append(SparseList *list, void *item)
+void sparse_list_append(SparseList *list, const void *item)
 {
     assert_not_null(list, "sparse_list_append: list is null");
     assert_not_null(list, "sparse_list_append: item is null");
@@ -1560,9 +1560,9 @@ void run_cmd_for_each_file_in_dir(const char *cmd, const char *path, const char 
         return;
 
     run_cmd_for_each_file_in_dir_s(
-        str_temp((char *)cmd),
-        str_temp((char *)path),
-        str_temp((char *)extension));
+        str_temp(cmd),
+        str_temp(path),
+        str_temp(extension));
 }
 
 void run_cmd_for_each_file_in_dir_s(String command, String path, String extension)
