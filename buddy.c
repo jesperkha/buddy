@@ -1128,6 +1128,20 @@ String path_concat(String path, String other)
 
 // :file
 
+bool file_copy(const char *path, const char *destination, Allocator a)
+{
+    return file_copy_s(str_temp((char *)path), str_temp((char *)destination), a);
+}
+
+bool file_copy_s(String path, String dest, Allocator a)
+{
+    Bytes content = file_read_all_s(path, a);
+    if (content.err)
+        return false;
+
+    return file_write_all_s(dest, content.bytes, content.length);
+}
+
 FileInfo file_get_info(const char *path)
 {
     return file_get_info_s(str_temp((char *)path));
@@ -1242,6 +1256,13 @@ Bytes file_read(File f, Allocator a, u64 size)
     };
 }
 
+Bytes file_read_all_s(String path, Allocator a)
+{
+    if (path.err)
+        return ERROR_BYTES;
+    return file_read_all(path.s, a);
+}
+
 Bytes file_read_all(const char *path, Allocator a)
 {
     File f = file_open(path, PERM_READ, false, false);
@@ -1250,43 +1271,58 @@ Bytes file_read_all(const char *path, Allocator a)
     return b;
 }
 
-void file_write(File f, u8 *bytes, u64 size)
+bool file_write(File f, u8 *bytes, u64 size)
 {
     if (f.err || bytes == NULL)
-        return;
+        return false;
 
     // TODO: same as read, write until full size is written
     ssize_t n = write(f.fd, bytes, (u32)size);
-    if (n < 0)
-        return; // handle error
+    return n >= 0;
 }
 
-void file_write_arr(File f, Bytes b)
+bool file_write_arr(File f, Bytes b)
 {
     if (f.err || b.err)
-        return;
-    file_write(f, b.bytes, b.length);
+        return false;
+    return file_write(f, b.bytes, b.length);
 }
 
-void file_write_str(File f, String s)
+bool file_write_str(File f, String s)
 {
     if (f.err || s.err)
-        return;
-    file_write(f, (u8 *)s.s, s.length);
+        return false;
+    return file_write(f, (u8 *)s.s, s.length);
 }
 
-void file_write_all(const char *path, u8 *bytes, u64 length)
+bool file_write_all_s(String path, u8 *bytes, u64 length)
+{
+    if (path.err)
+        return false;
+    return file_write_all(path.s, bytes, length);
+}
+
+bool file_write_all(const char *path, u8 *bytes, u64 length)
 {
     File f = file_open(path, PERM_WRITE, true, true);
-    file_write(f, bytes, length);
+    bool success = file_write(f, bytes, length);
     file_close(&f);
+    return success;
 }
 
-void file_append_all(const char *path, u8 *bytes, u64 length)
+bool file_append_all(const char *path, u8 *bytes, u64 length)
 {
     File f = file_open(path, PERM_APPEND, true, false);
-    file_write(f, bytes, length);
+    bool success = file_write(f, bytes, length);
     file_close(&f);
+    return success;
+}
+
+bool file_append_all_s(String path, u8 *bytes, u64 length)
+{
+    if (path.err)
+        return false;
+    return file_append_all(path.s, bytes, length);
 }
 
 // :directory

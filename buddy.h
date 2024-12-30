@@ -354,22 +354,34 @@ Bytes file_read(File f, Allocator a, u64 size);
 // Opens and reads file contents before closing. Returns ERROR_BYTES on
 // error.
 Bytes file_read_all(const char *path, Allocator a);
-// Write bytes to file.
-void file_write(File f, u8 *bytes, u64 size);
-// Write bytes to file.
-void file_write_arr(File f, Bytes bytes);
-// Write string to file.
-void file_write_str(File f, String s);
+// Opens and reads file contents before closing. Returns ERROR_BYTES on
+// error.
+Bytes file_read_all_s(String path, Allocator a);
+// Write bytes to file. Returns true on success.
+bool file_write(File f, u8 *bytes, u64 size);
+// Write bytes to file. Returns true on success.
+bool file_write_arr(File f, Bytes bytes);
+// Write string to file. Returns true on success.
+bool file_write_str(File f, String s);
 // Opens file and writes bytes before closing. Truncates file and creates new
-// if it doesnt already exist.
-void file_write_all(const char *path, u8 *bytes, u64 length);
+// if it doesnt already exist. Returns true on success.
+bool file_write_all(const char *path, u8 *bytes, u64 length);
+// Opens file and writes bytes before closing. Truncates file and creates new
+// if it doesnt already exist. Returns true on success.
+bool file_write_all_s(String path, u8 *bytes, u64 length);
 // Opens file and appends bytes to end before closing. Creates new file if it
-// doesnt already exist.
-void file_append_all(const char *path, u8 *bytes, u64 length);
+// doesnt already exist. Returns true on success.
+bool file_append_all(const char *path, u8 *bytes, u64 length);
+// Opens file and appends bytes to end before closing. Creates new file if it
+// doesnt already exist. Returns true on success.
+bool file_append_all_s(String path, u8 *bytes, u64 length);
 // Get file info without opening file.
 FileInfo file_get_info(const char *path);
 // Get file info without opening file.
 FileInfo file_get_info_s(String path);
+
+bool file_copy(const char *path, const char *destination, Allocator a);
+bool file_copy_s(String path, String destination, Allocator a);
 
 // Directories
 
