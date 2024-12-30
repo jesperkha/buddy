@@ -1128,9 +1128,25 @@ String path_concat(String path, String other)
 
 // :file
 
-bool file_copy(const char *path, const char *destination, Allocator a)
+bool file_move(const char *path, const char *dest)
 {
-    return file_copy_s(str_temp((char *)path), str_temp((char *)destination), a);
+    if (path == NULL || dest == NULL)
+        return false;
+
+    return rename(path, dest) == 0;
+}
+
+bool file_move_s(String path, String dest)
+{
+    if (path.err || dest.err)
+        return false;
+
+    return file_move(path.s, dest.s);
+}
+
+bool file_copy(const char *path, const char *dest, Allocator a)
+{
+    return file_copy_s(str_temp((char *)path), str_temp((char *)dest), a);
 }
 
 bool file_copy_s(String path, String dest, Allocator a)
@@ -1260,6 +1276,7 @@ Bytes file_read_all_s(String path, Allocator a)
 {
     if (path.err)
         return ERROR_BYTES;
+
     return file_read_all(path.s, a);
 }
 
@@ -1285,6 +1302,7 @@ bool file_write_arr(File f, Bytes b)
 {
     if (f.err || b.err)
         return false;
+
     return file_write(f, b.bytes, b.length);
 }
 
@@ -1292,6 +1310,7 @@ bool file_write_str(File f, String s)
 {
     if (f.err || s.err)
         return false;
+
     return file_write(f, (u8 *)s.s, s.length);
 }
 
@@ -1299,6 +1318,7 @@ bool file_write_all_s(String path, u8 *bytes, u64 length)
 {
     if (path.err)
         return false;
+
     return file_write_all(path.s, bytes, length);
 }
 
@@ -1322,6 +1342,7 @@ bool file_append_all_s(String path, u8 *bytes, u64 length)
 {
     if (path.err)
         return false;
+
     return file_append_all(path.s, bytes, length);
 }
 

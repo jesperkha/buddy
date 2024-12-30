@@ -379,9 +379,14 @@ bool file_append_all_s(String path, u8 *bytes, u64 length);
 FileInfo file_get_info(const char *path);
 // Get file info without opening file.
 FileInfo file_get_info_s(String path);
-
-bool file_copy(const char *path, const char *destination, Allocator a);
-bool file_copy_s(String path, String destination, Allocator a);
+// Copy file at path to dest. Allocator used to read file contents.
+bool file_copy(const char *path, const char *dest, Allocator a);
+// Copy file at path to dest. Allocator used to read file contents.
+bool file_copy_s(String path, String dest, Allocator a);
+// Move file at path to dest.
+bool file_move(const char *path, const char *dest);
+// Move file at path to dest.
+bool file_move_s(String path, String dest);
 
 // Directories
 
