@@ -1,7 +1,35 @@
 #pragma once
 
-#include <stdbool.h>
+#if defined(__linux__)
+
+// Linux includes
 #include <unistd.h>
+#include <dirent.h>
+
+#define OS_NAME "linux"
+#define os_is_linux() 1
+#define os_is_windows() 0
+#define OS_LINUX
+
+#elif defined(_WIN32) || defined(_WIN64)
+
+// Windows includes
+#include <windows.h>
+
+#define OS_WINDOWS
+#define OS_NAME "windows"
+#define os_is_linux() 0
+#define os_is_windows() 1
+
+#else
+#error "OS is unknown and therefore not supported by buddy"
+#endif
+
+// Universal includes
+#include <stdbool.h>
+
+#if defined(OS_LINUX)
+#endif
 
 #define KB(n) (n * 1024ull)
 #define MB(n) (KB(n) * 1024ull)
@@ -473,22 +501,4 @@ void run_cmd_for_each_file_in_dir(const char *command, const char *path, const c
 // Same as run_cmd_for_each_file_in_dir, but replace extension with ERROR_STRING
 // to omit the file type filter.
 void run_cmd_for_each_file_in_dir_s(String command, String path, String extension);
-
-// Macros
-
-// Defines
-
-#if defined(__linux__)
-#define OS_LINUX
-#define OS_NAME "linux"
-#define os_is_linux() 1
-#define os_is_windows() 0
-#elif defined(_WIN32) || defined(_WIN64)
-#define OS_WINDOWS
-#define OS_NAME "windows"
-#define os_is_linux() 0
-#define os_is_windows() 1
-#else
-#error "OS is unknown and therefore not supported by buddy"
-#endif
 

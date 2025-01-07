@@ -1,10 +1,8 @@
 #include "buddy.h"
 
 #include <stdarg.h>
-#include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
-#include <dirent.h>
 
 #include <malloc.h> // Temporary for heap alloc
 
@@ -708,18 +706,24 @@ String str_builder_to_string(StringBuilder *sb)
 void os_write_out(const u8 *bytes, u64 length)
 {
     assert_not_null(bytes, "os_write_out: bytes is NULL");
+#if defined(OS_LINUX)
     write(STDOUT_FILENO, bytes, (u32)length);
+#endif
 }
 
 void os_write_err(const u8 *bytes, u64 length)
 {
     assert_not_null(bytes, "os_write_err: bytes is NULL");
-    write(STDOUT_FILENO, bytes, (u32)length);
+#if defined(OS_LINUX)
+    write(STDERR_FILENO, bytes, (u32)length);
+#endif
 }
 
 Bytes os_read_input(u8 *buffer, u64 max_length)
 {
     assert_not_null(buffer, "os_read_input: buffer is NULL");
+
+#if defined(OS_LINUX)
     i64 len = read(STDIN_FILENO, buffer, (u32)max_length);
     if (len < 0)
         return ERROR_BYTES;
@@ -729,6 +733,10 @@ Bytes os_read_input(u8 *buffer, u64 max_length)
         .bytes = buffer,
         .length = (u64)len,
     };
+
+#elif defined(OS_WINDOWS)
+    return ERROR_BYTES;
+#endif
 }
 
 Bytes os_read_all_input(Allocator a)
@@ -776,9 +784,11 @@ Bytes os_read_all_input(Allocator a)
 
 void _os_flush_output(void)
 {
+#if defined(OS_LINUX)
     // Write nothing to flush
     write(STDERR_FILENO, "", 0);
     write(STDOUT_FILENO, "", 0);
+#endif
 }
 
 void _os_flush_input(void)
@@ -802,7 +812,10 @@ void os_exit(u8 status)
 {
     _os_flush_output();
     _os_flush_input();
+
+#if defined(OS_LINUX)
     _exit(status);
+#endif
 }
 
 static String _number_to_string(u64 n, bool sign)
@@ -1133,7 +1146,11 @@ bool file_move(const char *path, const char *dest)
     if (path == NULL || dest == NULL)
         return false;
 
+#if defined(OS_LINUX)
     return rename(path, dest) == 0;
+#elif defined(OS_WINDOWS)
+    return false; // TODO: windows file move
+#endif
 }
 
 bool file_move_s(String path, String dest)
@@ -1168,6 +1185,7 @@ FileInfo file_get_info_s(String path)
     if (path.err)
         return ERROR_FILE_INFO;
 
+#if defined(OS_LINUX)
     struct stat s;
     if (stat(path.s, &s) != 0)
         return ERROR_FILE_INFO;
@@ -1177,14 +1195,19 @@ FileInfo file_get_info_s(String path)
         .size_on_disk = (u64)(s.st_blksize * s.st_blocks),
         .last_modified = (u64)s.st_mtim.tv_sec,
     };
+#elif defined(OS_WINDOWS)
+    return ERROR_FILE_INFO; // TODO: windows file info
+#endif
 }
 
+#if defined(OS_LINUX)
 int _get_linux_file_permissions(void)
 {
     mode_t original_umask = umask(0);
     umask(original_umask);
     return 0666 & ~original_umask;
 }
+#endif
 
 File file_open_s(String path, FilePermission perm, bool create_if_absent, bool truncate)
 {
@@ -1229,6 +1252,8 @@ File file_open_s(String path, FilePermission perm, bool create_if_absent, bool t
         .readable = perm == PERM_READWRITE || perm == PERM_READ,
         .err = false,
     };
+#elif defined(OS_WINDOWS)
+    return ERROR_FILE; // TODO: windows file open
 #endif
 }
 
@@ -1244,10 +1269,13 @@ void file_close(File *f)
     if (f->err)
         return;
 
-    close(f->fd);
     f->open = false;
     f->writeable = false;
     f->readable = false;
+
+#if defined(OS_LINUX)
+    close(f->fd);
+#endif
 }
 
 Bytes file_read(File f, Allocator a, u64 size)
@@ -1259,6 +1287,7 @@ Bytes file_read(File f, Allocator a, u64 size)
     if (buffer == NULL)
         return ERROR_BYTES;
 
+#if defined(OS_LINUX)
     // TODO: This needs to loop to actually read the full requested size as
     // read may return early.
     ssize_t n = read(f.fd, buffer, (u32)size);
@@ -1270,6 +1299,9 @@ Bytes file_read(File f, Allocator a, u64 size)
         .length = (u64)n,
         .err = false,
     };
+#elif defined(OS_WINDOWS)
+    return ERROR_BYTES; // TODO: windows file read
+#endif
 }
 
 Bytes file_read_all_s(String path, Allocator a)
@@ -1293,9 +1325,13 @@ bool file_write(File f, const u8 *bytes, u64 size)
     if (f.err || bytes == NULL)
         return false;
 
+#if defined(OS_LINUX)
     // TODO: same as read, write until full size is written
     ssize_t n = write(f.fd, bytes, (u32)size);
     return n >= 0;
+#elif defined(OS_WINDOWS)
+    return false; // TODO: windows file write
+#endif
 }
 
 bool file_write_arr(File f, Bytes b)
@@ -1348,12 +1384,14 @@ bool file_append_all_s(String path, const u8 *bytes, u64 length)
 
 // :directory
 
+#if defined(OS_LINUX)
 static mode_t _get_linux_dir_permissions(void)
 {
     mode_t original_umask = umask(0);
     umask(original_umask);
     return 0777 & ~original_umask;
 }
+#endif
 
 bool dir_new(const char *name)
 {
@@ -1362,9 +1400,10 @@ bool dir_new(const char *name)
 
 bool dir_new_s(String name)
 {
-    // TODO: windows impl new dir
 #if defined(OS_LINUX)
     return mkdir(name.s, _get_linux_dir_permissions()) == 0;
+#elif defined(OS_WINDOWS)
+    return false; // TODO: windows dir new
 #endif
 }
 
