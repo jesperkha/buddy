@@ -1,11 +1,5 @@
 #include "buddy.h"
 
-#include <stdarg.h>
-#include <fcntl.h>
-#include <sys/stat.h>
-
-#include <malloc.h> // Temporary for heap alloc
-
 #if defined(OS_LINUX)
 #define PATH_SEP '/'
 #elif defined(OS_WINDOWS)
@@ -708,6 +702,8 @@ void os_write_out(const u8 *bytes, u64 length)
     assert_not_null(bytes, "os_write_out: bytes is NULL");
 #if defined(OS_LINUX)
     write(STDOUT_FILENO, bytes, (u32)length);
+#elif defined(OS_WINDOWS)
+    WriteConsoleA(GetStdHandle(STD_OUTPUT_HANDLE), (const void *)bytes, (DWORD)length, NULL, NULL);
 #endif
 }
 
@@ -716,6 +712,8 @@ void os_write_err(const u8 *bytes, u64 length)
     assert_not_null(bytes, "os_write_err: bytes is NULL");
 #if defined(OS_LINUX)
     write(STDERR_FILENO, bytes, (u32)length);
+#elif defined(OS_WINDOWS)
+    WriteConsoleA(GetStdHandle(STD_ERROR_HANDLE), (const void *)bytes, (DWORD)length, NULL, NULL);
 #endif
 }
 
@@ -735,7 +733,15 @@ Bytes os_read_input(u8 *buffer, u64 max_length)
     };
 
 #elif defined(OS_WINDOWS)
-    return ERROR_BYTES;
+    DWORD read;
+    if (!ReadConsole(GetStdHandle(STD_INPUT_HANDLE), buffer, max_length, &read, NULL))
+        return ERROR_BYTES;
+
+    return (Bytes){
+        .err = false,
+        .length = read,
+        .bytes = buffer,
+    };
 #endif
 }
 
@@ -784,16 +790,18 @@ Bytes os_read_all_input(Allocator a)
 
 void _os_flush_output(void)
 {
-#if defined(OS_LINUX)
     // Write nothing to flush
+#if defined(OS_LINUX)
     write(STDERR_FILENO, "", 0);
     write(STDOUT_FILENO, "", 0);
+#elif defined(OS_WINDOWS)
+    WriteConsoleA(GetStdHandle(STD_ERROR_HANDLE), NULL, 0, NULL, NULL);
+    WriteConsoleA(GetStdHandle(STD_OUTPUT_HANDLE), NULL, 0, NULL, NULL);
 #endif
 }
 
 void _os_flush_input(void)
 {
-    // TODO: windows impl flush input
 #if defined(OS_LINUX)
     char buffer[64];
 
@@ -805,6 +813,8 @@ void _os_flush_input(void)
 
     // Restore blocking mode
     fcntl(STDIN_FILENO, F_SETFL, flags);
+#elif defined(OS_WINDOWS)
+    FlushConsoleInputBuffer(GetStdHandle(STD_INPUT_HANDLE));
 #endif
 }
 
@@ -815,6 +825,8 @@ void os_exit(u8 status)
 
 #if defined(OS_LINUX)
     _exit(status);
+#elif defined(OS_WINDOWS)
+    ExitProcess(status);
 #endif
 }
 
@@ -1037,15 +1049,20 @@ void out_no_newline(const char *format, ...)
 
 String get_username(void)
 {
-    // TODO: windows impl get username
 #if defined(OS_LINUX)
     char *uname = getlogin();
     if (uname == NULL)
         return ERROR_STRING;
     return str_temp(uname);
+#elif defined(OS_WINDOWS)
+    char buffer[UNLEN+1];
+    DWORD len = 0;
+    if (!GetUserNameA(buffer, &len))
+        return ERROR_STRING;
+    if (len == 0)
+        return ERROR_STRING;
+    return str_temp(buffer);
 #endif
-
-    return ERROR_STRING;
 }
 
 String path_root(void)
@@ -1186,6 +1203,7 @@ FileInfo file_get_info_s(String path)
         return ERROR_FILE_INFO;
 
 #if defined(OS_LINUX)
+
     struct stat s;
     if (stat(path.s, &s) != 0)
         return ERROR_FILE_INFO;
@@ -1195,8 +1213,28 @@ FileInfo file_get_info_s(String path)
         .size_on_disk = (u64)(s.st_blksize * s.st_blocks),
         .last_modified = (u64)s.st_mtim.tv_sec,
     };
+
 #elif defined(OS_WINDOWS)
-    return ERROR_FILE_INFO; // TODO: windows file info
+
+    WIN32_FIND_DATAA data;
+    HANDLE hfind = FindFirstFileA(path.s, &data);
+    if (hfind == INVALID_HANDLE_VALUE)
+        return ERROR_FILE_INFO;
+
+    u64 size = ((u64)data.nFileSizeHigh << 32) | (u64)data.nFileSizeLow;
+    u64 modified = ((u64)data.ftLastWriteTime.dwHighDateTime << 32) |
+                   (u64)data.ftLastWriteTime.dwLowDateTime;
+
+    // TODO: windows file size on disk
+    FileInfo info = {
+        .err = false,
+        .last_modified = modified,
+        .size = size,
+    };
+
+    FindClose(hfind);
+    return info;
+
 #endif
 }
 
@@ -1214,8 +1252,8 @@ File file_open_s(String path, FilePermission perm, bool create_if_absent, bool t
     if (path.err)
         return ERROR_FILE;
 
-    // TODO: windows impl open file
 #if defined(OS_LINUX)
+
     int o_flags = 0;
 
     if (perm == PERM_READ)
@@ -1252,8 +1290,55 @@ File file_open_s(String path, FilePermission perm, bool create_if_absent, bool t
         .readable = perm == PERM_READWRITE || perm == PERM_READ,
         .err = false,
     };
+
 #elif defined(OS_WINDOWS)
-    return ERROR_FILE; // TODO: windows file open
+
+    DWORD filemode = 0;
+    if (perm == PERM_READ)
+        filemode |= GENERIC_READ;
+    else if (perm == PERM_WRITE)
+        filemode |= GENERIC_WRITE;
+    else if (perm == PERM_READWRITE)
+        filemode |= GENERIC_WRITE | GENERIC_READ;
+    else if (perm == PERM_APPEND)
+        filemode |= FILE_APPEND_DATA;
+
+    DWORD creation_flag = OPEN_EXISTING;
+    if (truncate)
+        creation_flag = TRUNCATE_EXISTING;
+    else if (create_if_absent)
+        creation_flag = OPEN_ALWAYS;
+
+    HANDLE file = CreateFileA(
+            path.s,
+            filemode,
+            0,
+            NULL,
+            creation_flag,
+            FILE_ATTRIBUTE_NORMAL,
+            NULL);
+
+    if (file == INVALID_HANDLE_VALUE)
+        return ERROR_FILE;
+
+    FileInfo info = file_get_info_s(path);
+    if (info.err)
+    {
+        CloseHandle(file);
+        return ERROR_FILE;
+    }
+
+    return (File){
+        .path = path,
+        .err = false,
+        .open = true,
+        .info = info,
+        .writeable = perm == PERM_WRITE || perm == PERM_APPEND || perm == PERM_READWRITE,
+        .readable = perm == PERM_READWRITE || perm == PERM_READ,
+        .fd = -1,
+        .hfile = file,
+    };
+
 #endif
 }
 
@@ -1275,6 +1360,8 @@ void file_close(File *f)
 
 #if defined(OS_LINUX)
     close(f->fd);
+#elif defined (OS_WINDOWS)
+    CloseHandle(f->hfile);
 #endif
 }
 
@@ -1288,6 +1375,7 @@ Bytes file_read(File f, Allocator a, u64 size)
         return ERROR_BYTES;
 
 #if defined(OS_LINUX)
+
     // TODO: This needs to loop to actually read the full requested size as
     // read may return early.
     ssize_t n = read(f.fd, buffer, (u32)size);
@@ -1300,7 +1388,9 @@ Bytes file_read(File f, Allocator a, u64 size)
         .err = false,
     };
 #elif defined(OS_WINDOWS)
+
     return ERROR_BYTES; // TODO: windows file read
+
 #endif
 }
 
@@ -1326,11 +1416,16 @@ bool file_write(File f, const u8 *bytes, u64 size)
         return false;
 
 #if defined(OS_LINUX)
+
     // TODO: same as read, write until full size is written
     ssize_t n = write(f.fd, bytes, (u32)size);
     return n >= 0;
+
 #elif defined(OS_WINDOWS)
-    return false; // TODO: windows file write
+
+    DWORD written;
+    return WriteFile(f.hfile, bytes, (u32)size, &written, NULL);
+
 #endif
 }
 
@@ -1403,7 +1498,7 @@ bool dir_new_s(String name)
 #if defined(OS_LINUX)
     return mkdir(name.s, _get_linux_dir_permissions()) == 0;
 #elif defined(OS_WINDOWS)
-    return false; // TODO: windows dir new
+    return CreateDirectory(name.s, NULL);
 #endif
 }
 
@@ -1416,8 +1511,8 @@ Dir dir_read_s(String path, Allocator a)
     if (list.err)
         return ERROR_DIR;
 
-    // TODO: windows impl read dir
 #if defined(OS_LINUX)
+
     DIR *dir = opendir(path.s);
     if (dir == NULL)
         return ERROR_DIR;
@@ -1443,6 +1538,11 @@ Dir dir_read_s(String path, Allocator a)
     }
 
     closedir(dir);
+
+#elif defined(OS_WINDOWS)
+
+    // TODO: read dir windows
+
 #endif
 
     if (list.err)
@@ -1562,14 +1662,19 @@ void _cmd(const char *arg1, ...)
     va_end(list);
     String args = str_builder_to_string(&sb);
 
-    // TODO: windows impl run shell command
 #if defined(OS_LINUX)
+
     if (fork() == 0)
     {
         // As child, execute command
         execl("/bin/sh", "sh", "-c", args.s, NULL);
         os_exit(0);
     }
+
+#elif defined(OS_WINDOWS)
+
+    // TODO: run shell command windows
+
 #endif
 
     out("cmd: {S}", args);

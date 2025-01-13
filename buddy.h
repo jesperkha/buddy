@@ -5,16 +5,23 @@
 // Linux includes
 #include <unistd.h>
 #include <dirent.h>
+#include <stdarg.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <malloc.h> // Temporary for heap alloc
 
 #define OS_NAME "linux"
 #define os_is_linux() 1
 #define os_is_windows() 0
 #define OS_LINUX
+#define HANDLE void*
 
 #elif defined(_WIN32) || defined(_WIN64)
 
 // Windows includes
 #include <windows.h>
+#include <winbase.h>
+#include <lmcons.h>
 
 #define OS_WINDOWS
 #define OS_NAME "windows"
@@ -359,7 +366,9 @@ typedef struct File
 {
     String path;
     FileInfo info;
+
     i32 fd;
+    HANDLE hfile;
 
     bool open;
     bool writeable;
@@ -368,7 +377,7 @@ typedef struct File
     bool err;
 } File;
 
-#define ERROR_FILE ((File){.err = true, .fd = -1, .open = false})
+#define ERROR_FILE ((File){.err = true, .fd = -1, .hfile = NULL, .open = false})
 
 // Open a file with the given permissions. Returns ERROR_FILE on error.
 File file_open(const char *path, FilePermission perm, bool create_if_absent, bool truncate);
