@@ -1,13 +1,4 @@
 #include "buddy.h"
-#include <fileapi.h>
-#include <handleapi.h>
-#include <winnt.h>
-
-#if defined(OS_LINUX)
-#define PATH_SEP '/'
-#elif defined(OS_WINDOWS)
-#define PATH_SEP '\\'
-#endif
 
 // :utils
 

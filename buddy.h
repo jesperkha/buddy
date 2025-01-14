@@ -10,11 +10,13 @@
 #include <sys/stat.h>
 #include <malloc.h> // Temporary for heap alloc
 
+// Linux defines
 #define OS_NAME "linux"
 #define os_is_linux() 1
 #define os_is_windows() 0
 #define OS_LINUX
 #define HANDLE void*
+#define PATH_SEP '/'
 
 #elif defined(_WIN32) || defined(_WIN64)
 
@@ -23,10 +25,12 @@
 #include <winbase.h>
 #include <lmcons.h>
 
+// Windows defines
 #define OS_WINDOWS
 #define OS_NAME "windows"
 #define os_is_linux() 0
 #define os_is_windows() 1
+#define PATH_SEP '\\'
 
 #else
 #error "OS is unknown and therefore not supported by buddy"
@@ -34,9 +38,6 @@
 
 // Universal includes
 #include <stdbool.h>
-
-#if defined(OS_LINUX)
-#endif
 
 #define KB(n) (n * 1024ull)
 #define MB(n) (KB(n) * 1024ull)
