@@ -2,13 +2,6 @@
 
 // :utils
 
-#define panic(msg)                         \
-    {                                      \
-        char *m = "buddy: " msg "\n";      \
-        os_write_err((u8*)m, cstr_len(m)); \
-        os_exit(1);                        \
-    }
-
 // Root of all evil, internal only
 // DO NOT USE FOR STRING LITERALS EVER
 #define _STRING(_s) \
@@ -998,6 +991,8 @@ String fmt(const char *format, ...)
     return f;
 }
 
+// :out
+
 void out(const char *format, ...)
 {
     if (format == NULL)
@@ -1037,6 +1032,38 @@ void out_no_newline(const char *format, ...)
         return;
 
     os_write_out((u8 *)output.s, output.length);
+}
+
+void panic(const char *msg)
+{
+    const char *prefix = "panic: ";
+    os_write_err((u8 *)prefix, cstr_len(prefix));
+
+    if (msg != NULL)
+        os_write_err((u8 *)msg, cstr_len(msg));
+    else
+        os_write_err((u8 *)"NULL", 4);
+
+    os_write_err((u8 *)"\n", 1);
+    os_exit(1);
+}
+
+void panic_fmt(const char *format, ...)
+{
+    va_list args;
+    va_start(args, format);
+
+    String output = _fmt(format, &args);
+    va_end(args);
+
+    if (output.err)
+        return;
+
+    const char *prefix = "panic: ";
+    os_write_err((u8 *)prefix, cstr_len(prefix));
+    os_write_err((u8 *)output.s, output.length);
+    os_write_err((u8 *)"\n", 1);
+    os_exit(1);
 }
 
 // :path

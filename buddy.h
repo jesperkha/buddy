@@ -302,6 +302,12 @@ void out(const char *text, ...);
 // Same as out but without the appended newline.
 void out_no_newline(const char *format, ...);
 
+// 'Raw' panic. Prints to stderr and exits with code 1.
+void panic(const char *msg);
+// Panics with formatted message and exit code 1. NOTE: uses temporary
+// allocator, not for internal use.
+void panic_fmt(const char *format, ...);
+
 // IO
 
 // Returns username of currently logged in user. Returns ERROR_STRING
