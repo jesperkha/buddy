@@ -3,6 +3,8 @@
 #include <stdarg.h>
 #include <stdlib.h> // NULL
 
+// TODO: file and dir IO tests
+
 // Military grade testing suite
 
 #define test(name) for (bool k = true; k; k = false) \
