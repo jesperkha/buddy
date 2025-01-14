@@ -1,4 +1,7 @@
 #include "buddy.h"
+#include <fileapi.h>
+#include <handleapi.h>
+#include <winnt.h>
 
 #if defined(OS_LINUX)
 #define PATH_SEP '/'
@@ -1166,7 +1169,7 @@ bool file_move(const char *path, const char *dest)
 #if defined(OS_LINUX)
     return rename(path, dest) == 0;
 #elif defined(OS_WINDOWS)
-    return false; // TODO: windows file move
+    return MoveFileA(path, dest);
 #endif
 }
 
@@ -1377,7 +1380,8 @@ Bytes file_read(File f, Allocator a, u64 size)
 #if defined(OS_LINUX)
 
     // TODO: This needs to loop to actually read the full requested size as
-    // read may return early.
+    // read may return early. Check if its the same for windows.
+
     ssize_t n = read(f.fd, buffer, (u32)size);
     if (n < 0)
         return ERROR_BYTES;
@@ -1389,7 +1393,15 @@ Bytes file_read(File f, Allocator a, u64 size)
     };
 #elif defined(OS_WINDOWS)
 
-    return ERROR_BYTES; // TODO: windows file read
+    DWORD read;
+    if (!ReadFile(f.hfile, buffer, (u32)size, &read, NULL) || read != size)
+        return ERROR_BYTES;
+
+    return (Bytes){
+        .err = false,
+        .length = size,
+        .bytes = buffer,
+    };
 
 #endif
 }
@@ -1541,7 +1553,38 @@ Dir dir_read_s(String path, Allocator a)
 
 #elif defined(OS_WINDOWS)
 
-    // TODO: read dir windows
+    // FindFirstFileA is needs a \\* to correctly query the given dir.
+    String wpath = str_concat(get_temporary_allocator(), path, str_temp("\\*"));
+
+    WIN32_FIND_DATAA data;
+    HANDLE hfind = FindFirstFileA(wpath.s, &data);
+    if (hfind == INVALID_HANDLE_VALUE)
+        return ERROR_DIR;
+
+    do
+    {
+        String name = str_alloc_cstr(a, data.cFileName);
+        DWORD attr = data.dwFileAttributes;
+
+        // "A file or directory that has an associated reparse point,
+        // or a file that is a symbolic link."
+        const u32 SYMLINK_FLAG = FILE_ATTRIBUTE_REPARSE_POINT;
+
+        DirEntry e = {
+            .name = name,
+            .is_dir = attr & FILE_ATTRIBUTE_DIRECTORY,
+            .is_symlink = attr & SYMLINK_FLAG,
+        };
+
+        e.is_file = !e.is_dir;
+        e.is_current_dir = e.is_dir && cstr_equal(e.name.s, ".");
+        e.is_parent_dir = e.is_dir && cstr_equal(e.name.s, "..");
+
+        sparse_list_append(&list, &e);
+
+    } while (FindNextFile(hfind, &data) != 0);
+
+    FindClose(hfind);
 
 #endif
 
@@ -1673,11 +1716,14 @@ void _cmd(const char *arg1, ...)
 
 #elif defined(OS_WINDOWS)
 
-    // TODO: run shell command windows
+    STARTUPINFO si = {0};
+    si.cb = sizeof(si);
+    PROCESS_INFORMATION pi = {0};
+
+    String command = fmt("cmd.exe /c {S}", args);
+    CreateProcess(NULL, command.s, NULL, NULL, 0, 0, NULL, NULL, &si, &pi);
 
 #endif
-
-    out("cmd: {S}", args);
 }
 
 void cmd_fmt(const char *format, ...)
