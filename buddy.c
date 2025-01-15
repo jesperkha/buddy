@@ -793,7 +793,6 @@ Bytes os_read_all_input(Allocator a)
         readable_size = size / 2;
     }
 
-    panic("os_read_all_input: unreachable");
     return ERROR_BYTES;
 }
 
