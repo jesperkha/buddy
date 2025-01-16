@@ -1,5 +1,24 @@
 #include "buddy.h"
 
+#if defined(OS_LINUX)
+
+// Linux includes
+#include <unistd.h>
+#include <dirent.h>
+#include <stdarg.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <malloc.h> // Temporary for heap alloc
+
+#elif defined(OS_WINDOWS)
+
+// Windows includes
+#include <windows.h>
+#include <winbase.h>
+#include <lmcons.h>
+
+#endif
+
 // :utils
 
 // Root of all evil, internal only

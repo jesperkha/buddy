@@ -2,28 +2,14 @@
 
 #if defined(__linux__)
 
-// Linux includes
-#include <unistd.h>
-#include <dirent.h>
-#include <stdarg.h>
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <malloc.h> // Temporary for heap alloc
-
 // Linux defines
 #define OS_NAME "linux"
 #define os_is_linux() 1
 #define os_is_windows() 0
 #define OS_LINUX
-#define HANDLE void*
 #define PATH_SEP '/'
 
 #elif defined(_WIN32) || defined(_WIN64)
-
-// Windows includes
-#include <windows.h>
-#include <winbase.h>
-#include <lmcons.h>
 
 // Windows defines
 #define OS_WINDOWS
@@ -375,7 +361,7 @@ typedef struct File
     FileInfo info;
 
     i32 fd;
-    HANDLE hfile;
+    void *hfile;
 
     bool open;
     bool writeable;
