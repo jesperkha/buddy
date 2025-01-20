@@ -477,12 +477,16 @@ typedef List SparseList; // Unordered list with fast remove
 SparseList sparse_list_new(u64 item_size, u64 length, Allocator a);
 // Appends item to end of list. Panics if list or item is null.
 void sparse_list_append(SparseList *list, const void *item);
+// Puts item at index. Must be within list length.
+void sparse_list_put(SparseList *list, u64 index, const void *item);
 // Get a pointer to the item at index. Returns NULL if index is out of bounds.
 // Panics is list is null.
 void *sparse_list_get(SparseList *list, u64 index);
 // Removes item at index by replacing it with the last item. Fails if index is
 // out of bounds. Panics is list is null.
 void sparse_list_remove(SparseList *list, u64 index);
+// Resets list back to length 0. Does not resize the internal list memory.
+void sparse_list_clear(SparseList *list);
 
 // Shell and commands
 

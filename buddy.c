@@ -1677,6 +1677,9 @@ void sparse_list_append(SparseList *list, const void *item)
     assert_not_null(list, "sparse_list_append: list is null");
     assert_not_null(list, "sparse_list_append: item is null");
 
+    if (list->err)
+        return;
+
     if (list->size == list->cap)
     {
         // Reallocate internal array
@@ -1691,6 +1694,19 @@ void sparse_list_append(SparseList *list, const void *item)
     u8 *dest = (u8 *)list->mem + (list->size * list->item_size);
     copy_memory(dest, item, list->item_size);
     list->size++;
+}
+
+void sparse_list_put(SparseList *list, u64 index, const void *item)
+{
+    assert_not_null(list, "sparse_list_put: list is null");
+    assert_not_null(item, "sparse_list_put: item is null");
+
+    // Can put at last index, would be same as append
+    if (list->err || index > list->size || index >= list->cap)
+        return;
+
+    u8 *dest = (u8 *)list->mem + (index * list->item_size);
+    copy_memory(dest, item, list->item_size);
 }
 
 void *sparse_list_get(SparseList *list, u64 index)
@@ -1716,6 +1732,12 @@ void sparse_list_remove(SparseList *list, u64 index)
     copy_memory(dest, src, list->item_size);
 
     list->size--;
+}
+
+void sparse_list_clear(SparseList *list)
+{
+    assert_not_null(list, "sparse_list_clear: list is null");
+    list->size = 0;
 }
 
 // :shell

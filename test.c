@@ -252,6 +252,21 @@ bool test_list(void)
             assert(s != NULL, "Expected not null");
             assert(str_equal(*s, fmt("Hello {i32}", count-i-1)), "Expected equal after remove");
         }
+
+        sparse_list_clear(&list);
+
+        for (int i = 0; i < 3; i++)
+        {
+
+            String s = fmt("{i32}", i+1);
+            sparse_list_append(&list, &s);
+        }
+
+        String five = fmt("5");
+        sparse_list_put(&list, 1, &five);
+
+        String *got = sparse_list_get(&list, 1);
+        assert(str_equal(*got, five), "Expected five");
     }
 
     return true;
