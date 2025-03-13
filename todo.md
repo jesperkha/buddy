@@ -3,6 +3,10 @@
 - File create, delete
 - Dir create, delete
 
+### Bugs
+
+- file_open fails if file is created because file_get_info cannot read from non-existing file
+
 ### "Modules"
 
 - Date and time
@@ -20,4 +24,3 @@
   - Hashset
   - Sorting
 - Math
-

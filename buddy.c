@@ -1,4 +1,7 @@
+// Dont include header if single-header
+#ifndef BUDDY_IMPLEMENTATION
 #include "buddy.h"
+#endif
 
 #if defined(OS_LINUX)
 
@@ -491,7 +494,7 @@ String str_alloc_cstr(Allocator a, const char *s)
     if (mem == NULL)
         return ERROR_STRING;
 
-    copy_memory(mem, (void*)s, len);
+    copy_memory(mem, (void *)s, len);
     mem[len] = 0; // Make sure is null termiated
 
     return (String){
@@ -1095,7 +1098,7 @@ String get_username(void)
         return ERROR_STRING;
     return str_temp(uname);
 #elif defined(OS_WINDOWS)
-    char buffer[UNLEN+1];
+    char buffer[UNLEN + 1];
     DWORD len = 0;
     if (!GetUserNameA(buffer, &len))
         return ERROR_STRING;
@@ -1350,13 +1353,13 @@ File file_open_s(String path, FilePermission perm, bool create_if_absent, bool t
         creation_flag = OPEN_ALWAYS;
 
     HANDLE file = CreateFileA(
-            path.s,
-            filemode,
-            0,
-            NULL,
-            creation_flag,
-            FILE_ATTRIBUTE_NORMAL,
-            NULL);
+        path.s,
+        filemode,
+        0,
+        NULL,
+        creation_flag,
+        FILE_ATTRIBUTE_NORMAL,
+        NULL);
 
     if (file == INVALID_HANDLE_VALUE)
         return ERROR_FILE;
@@ -1400,7 +1403,7 @@ void file_close(File *f)
 
 #if defined(OS_LINUX)
     close(f->fd);
-#elif defined (OS_WINDOWS)
+#elif defined(OS_WINDOWS)
     CloseHandle(f->hfile);
 #endif
 }
@@ -1841,4 +1844,3 @@ void run_cmd_for_each_file_in_dir_s(String command, String path, String extensio
         cmd_fmt(command.s, entry.name, NULL, NULL, NULL);
     }
 }
-
