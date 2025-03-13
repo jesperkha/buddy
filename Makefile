@@ -8,7 +8,7 @@ all:
 	./bin/test
 
 build:
-	mkdir -p dist
+	mkdir -p bin dist
 	touch dist/buddy.h
 	$(CC) $(FLAGS) buddy.c build.c -o bin/build
 	./bin/build
