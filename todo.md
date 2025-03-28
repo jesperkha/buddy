@@ -5,7 +5,7 @@
 
 ### Bugs
 
-- file_open fails if file is created because file_get_info cannot read from non-existing file
+- file_open fails if file is created because file_get_info cannot read from non-existing file (windows)
 
 ### "Modules"
 
