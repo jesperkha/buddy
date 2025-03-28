@@ -1418,27 +1418,43 @@ Bytes file_read(File f, Allocator a, u64 size)
 
 #if defined(OS_LINUX)
 
-    // TODO: This needs to loop to actually read the full requested size as
-    // read may return early. Check if its the same for windows.
+    u64 bytes_read = 0;
+    while (bytes_read < size)
+    {
+        ssize_t n = read(f.fd, buffer + bytes_read, (u32)(size - bytes_read));
+        if (n < 0)
+            return ERROR_BYTES;
 
-    ssize_t n = read(f.fd, buffer, (u32)size);
-    if (n < 0)
-        return ERROR_BYTES;
+        if (n == 0)
+            break;
+
+        bytes_read += (u64)n;
+    }
 
     return (Bytes){
         .bytes = buffer,
-        .length = (u64)n,
+        .length = bytes_read,
         .err = false,
     };
+
 #elif defined(OS_WINDOWS)
 
-    DWORD read;
-    if (!ReadFile(f.hfile, buffer, (u32)size, &read, NULL) || read != size)
-        return ERROR_BYTES;
+    DWORD bytes_read = 0;
+    while (bytes_read < size)
+    {
+        DWORD n;
+        if (!ReadFile(f.hfile, buffer + bytes_read, (u32)(size - bytes_read), &n, NULL))
+            return ERROR_BYTES;
+
+        if (n == 0)
+            break;
+
+        bytes_read += n;
+    }
 
     return (Bytes){
         .err = false,
-        .length = size,
+        .length = (u64)bytes_read,
         .bytes = buffer,
     };
 
@@ -1468,14 +1484,37 @@ bool file_write(File f, const u8 *bytes, u64 size)
 
 #if defined(OS_LINUX)
 
-    // TODO: same as read, write until full size is written
-    ssize_t n = write(f.fd, bytes, (u32)size);
-    return n >= 0;
+    u64 written = 0;
+    while (written < size)
+    {
+        ssize_t n = write(f.fd, bytes + written, (u32)(size - written));
+        if (n < 0)
+            return false;
+
+        if (n == 0)
+            break;
+
+        written += (u64)n;
+    }
+
+    return written == size;
 
 #elif defined(OS_WINDOWS)
 
-    DWORD written;
-    return WriteFile(f.hfile, bytes, (u32)size, &written, NULL);
+    DWORD written = 0;
+    while (written < size)
+    {
+        DWORD n;
+        if (!WriteFile(f.hfile, bytes + written, (u32)(size - written), &n, NULL))
+            return false;
+
+        if (n == 0)
+            break;
+
+        written += n;
+    }
+
+    return written == size;
 
 #endif
 }
