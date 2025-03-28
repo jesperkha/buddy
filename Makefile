@@ -20,4 +20,4 @@ gcc:
 
 clean:
 	rm -rf bin dist
-	rm -f *.exe
+	rm -f *.exe *.txt
