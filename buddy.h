@@ -60,9 +60,9 @@ typedef enum AllocatorMessage
 } AllocatorMessage;
 
 // The allocator is a generic structure with an internal allocation process.
-// Some functions take an allocator as an argument to give the user more control
-// over how memory gets allocated and used in the program. Most allocators have
-// a `get_x_allocator` function.
+// Some functions take an allocator as an argument to give the user more
+// control over how memory gets allocated and used in the program. Most
+// allocators have a `get_x_allocator` function.
 typedef struct Allocator
 {
     void *data;
@@ -86,7 +86,7 @@ Allocator get_heap_allocator(void);
 void *heap_alloc(u64 size);
 // Same as `heap_alloc`, but zeroes memory as well.
 void *heap_zero_alloc(u64 size);
-// Reallocates pointer to new size with heap allocator. Returns NULL on failure.
+// Reallocates pointer to new size with heap allocator. Returns NULL on failure
 void *heap_realloc(void *old_ptr, u64 size);
 // Frees heap allocated pointer.
 void heap_free(void *ptr);
@@ -119,8 +119,8 @@ void temp_restore_mark(u64 id);
 
 // Arena
 
-// Arenas a chunks of memory you can allocate to and free all at once. They make
-// it easy to handle memory across multiple function calls as you can free
+// Arenas a chunks of memory you can allocate to and free all at once. They
+// make it easy to handle memory across multiple function calls as you can free
 // everything allocated to the arena all at once.
 typedef struct Arena
 {
@@ -223,11 +223,11 @@ String str_replace_str(Allocator a, String s, String old, String new_s);
 String str_reverse(String s);
 // Returns index of first occurance of c. Returns -1 if not found.
 i64 str_find_char(String s, char c);
-// Returns index of first occurance of c, searching backwards. Returns -1 if not
-// found.
+// Returns index of first occurance of c, searching backwards. Returns -1 if
+// not found.
 i64 str_find_char_reverse(String s, char c);
-// Concatinates s1 and s2, allocating with a. Returns ERROR_STRING if either has an
-// error or allocation fails.
+// Concatinates s1 and s2, allocating with a. Returns ERROR_STRING if either
+// has an error or allocation fails.
 String str_concat(Allocator a, String s1, String s2);
 
 // String builder
@@ -323,7 +323,8 @@ String path_home(void);
 String path_get_filename(String path);
 // Get the file extension from the path.
 String path_get_extension(String path);
-// Go back one directory. Returns *substring* from original path or ERROR_STRING.
+// Go back one directory. Returns *substring* from original path or
+// ERROR_STRING.
 String path_back_dir(String path);
 // Append other to path. Uses temporary allocator. Returns ERROR_STRING if
 // either is a malformed path.
@@ -472,18 +473,31 @@ typedef List SparseList; // Unordered list with fast remove
 // Universal for all list variants
 #define ERROR_LIST ((List){.err = true, .mem = NULL, .size = 0, .cap = 0})
 
-// Create new sparse list with allocator and intial size. Item size is in bytes.
+// Create new list with allocator and intial size. Items size is in bytes.
 // Returns ERROR_LIST if allocation fails.
+List list_new(u64 item_size, u64 length, Allocator a);
+// Appends item to end of list. Panics if list or item is null.
+void list_append(SparseList *list, const void *item);
+// Puts item at index. Must be within list length.
+void list_put(List *list, u64 index, const void *item);
+// Get a pointer to the item at index. Returns NULL if index is out of bounds.
+void *list_get(List *list, u64 index);
+// Removes item at index and shifts tail end of list to the left.
+void list_remove(List *list, u64 index);
+// Resets list back to length 0. Does not resize the internal list memory.
+void list_clear(List *list);
+
+// Create new sparse list with allocator and intial size. Item size is in
+// bytes. Returns ERROR_LIST if allocation fails.
 SparseList sparse_list_new(u64 item_size, u64 length, Allocator a);
 // Appends item to end of list. Panics if list or item is null.
 void sparse_list_append(SparseList *list, const void *item);
 // Puts item at index. Must be within list length.
 void sparse_list_put(SparseList *list, u64 index, const void *item);
 // Get a pointer to the item at index. Returns NULL if index is out of bounds.
-// Panics is list is null.
 void *sparse_list_get(SparseList *list, u64 index);
 // Removes item at index by replacing it with the last item. Fails if index is
-// out of bounds. Panics is list is null.
+// out of bounds.
 void sparse_list_remove(SparseList *list, u64 index);
 // Resets list back to length 0. Does not resize the internal list memory.
 void sparse_list_clear(SparseList *list);
@@ -504,7 +518,7 @@ void _cmd(const char *arg1, ...);
 // file type to target, provide NULL to target all files. Command may contain
 // *one* {S} specifier which will be replaced with the filename for each file.
 void run_cmd_for_each_file_in_dir(const char *command, const char *path, const char *extension);
-// Same as run_cmd_for_each_file_in_dir, but replace extension with ERROR_STRING
-// to omit the file type filter.
+// Same as run_cmd_for_each_file_in_dir, but replace extension with
+// ERROR_STRING to omit the file type filter.
 void run_cmd_for_each_file_in_dir_s(String command, String path, String extension);
 

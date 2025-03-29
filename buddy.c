@@ -37,17 +37,30 @@
 
 void zero_memory(void *p, u64 size)
 {
-    assert_not_null(p, "zero_memory: p is NULL");
+    assert_not_null(p, "zero_memory: p is null");
     for (u64 i = 0; i < size; i++)
         ((u8 *)p)[i] = 0;
 }
 
 void copy_memory(void *dest, const void *source, u64 size)
 {
-    assert_not_null(dest, "copy_memory: destination is NULL");
-    assert_not_null(source, "copy_memory: source is NULL");
+    assert_not_null(dest, "copy_memory: destination is null");
+    assert_not_null(source, "copy_memory: source is null");
     for (u64 i = 0; i < size; i++)
         ((u8 *)dest)[i] = ((u8 *)source)[i];
+}
+
+void move_memory(void *dest, const void *source, u64 size)
+{
+    assert_not_null(dest, "move_memory: dest is null");
+    assert_not_null(source, "move_memory: source is null");
+
+    if (dest < source)
+        for (u64 i = 0; i < size; i++)
+            ((u8 *)dest)[i] = ((u8 *)source)[i];
+    else
+        for (u64 i = size; i > 0; i--)
+            ((u8 *)dest)[i-1] = ((u8 *)source)[i-1];
 }
 
 // :allocator
@@ -65,25 +78,25 @@ BlockHeader *_get_block_header(void *p)
 
 void *alloc(Allocator a, u64 size)
 {
-    assert_not_null(a.proc, "alloc: a is NULL");
+    assert_not_null(a.proc, "alloc: a is null");
     return a.proc(a, ALLOCATOR_MSG_ALLOC, size, NULL);
 }
 
 void *alloc_zero(Allocator a, u64 size)
 {
-    assert_not_null(a.proc, "alloc_zero: a is NULL");
+    assert_not_null(a.proc, "alloc_zero: a is null");
     return a.proc(a, ALLOCATOR_MSG_ZERO_ALLOC, size, NULL);
 }
 
 void *alloc_realloc(Allocator a, void *p, u64 new_size)
 {
-    assert_not_null(a.proc, "alloc_realloc: a is NULL");
+    assert_not_null(a.proc, "alloc_realloc: a is null");
     return a.proc(a, ALLOCATOR_MSG_REALLOC, new_size, p);
 }
 
 void alloc_free(Allocator a, void *p)
 {
-    assert_not_null(a.proc, "alloc_free: a is NULL");
+    assert_not_null(a.proc, "alloc_free: a is null");
     a.proc(a, ALLOCATOR_MSG_FREE, 0, p);
 }
 
@@ -221,7 +234,7 @@ Arena *arena_new(Allocator a, u64 size)
 
 void *arena_alloc(Arena *a, u64 size)
 {
-    assert_not_null(a, "arena_alloc: a is NULL");
+    assert_not_null(a, "arena_alloc: a is null");
     if (a->pos + size > a->size)
         return NULL;
 
@@ -427,7 +440,7 @@ String str_concat(Allocator a, String s1, String s2)
 
 uint cstr_len(const char *s)
 {
-    assert_not_null(s, "cstr_len: s is NULL");
+    assert_not_null(s, "cstr_len: s is null");
     uint count = 0;
     const char *p = s;
     while (*p != 0)
@@ -552,8 +565,8 @@ bool str_equal(String a, String b)
 
 bool cstr_equal(const char *a, const char *b)
 {
-    assert_not_null(a, "cstr_equal: a is NULL");
-    assert_not_null(b, "cstr_equal: b is NULL");
+    assert_not_null(a, "cstr_equal: a is null");
+    assert_not_null(b, "cstr_equal: b is null");
     return str_equal(_STRING((char *)a), _STRING((char *)b));
 }
 
@@ -654,7 +667,7 @@ bool str_builder_append(StringBuilder *sb, String s)
 
 bool str_builder_append_cstr(StringBuilder *sb, const char *s)
 {
-    assert_not_null(s, "str_builder_append_cstr: s is NULL");
+    assert_not_null(s, "str_builder_append_cstr: s is null");
     return str_builder_append(sb, _STRING((char *)s));
 }
 
@@ -666,8 +679,8 @@ bool str_builder_append_char(StringBuilder *sb, char c)
 
 bool str_builder_append_bytes(StringBuilder *sb, const u8 *bytes, u64 length)
 {
-    assert_not_null(sb, "str_builder_append_bytes: sb is NULL");
-    assert_not_null(bytes, "str_builder_append_bytes: bytes is NULL");
+    assert_not_null(sb, "str_builder_append_bytes: sb is null");
+    assert_not_null(bytes, "str_builder_append_bytes: bytes is null");
 
     if (sb->err)
         return false;
@@ -695,7 +708,7 @@ bool str_builder_append_bytes(StringBuilder *sb, const u8 *bytes, u64 length)
 
 String str_builder_to_string(StringBuilder *sb)
 {
-    assert_not_null(sb, "str_builder_to_string: sb is NULL");
+    assert_not_null(sb, "str_builder_to_string: sb is null");
     str_builder_append_char(sb, 0); // Null terminator
     return (String){
         .s = sb->mem,
@@ -708,7 +721,7 @@ String str_builder_to_string(StringBuilder *sb)
 
 void os_write_out(const u8 *bytes, u64 length)
 {
-    assert_not_null(bytes, "os_write_out: bytes is NULL");
+    assert_not_null(bytes, "os_write_out: bytes is null");
 #if defined(OS_LINUX)
     write(STDOUT_FILENO, bytes, (u32)length);
 #elif defined(OS_WINDOWS)
@@ -718,7 +731,7 @@ void os_write_out(const u8 *bytes, u64 length)
 
 void os_write_err(const u8 *bytes, u64 length)
 {
-    assert_not_null(bytes, "os_write_err: bytes is NULL");
+    assert_not_null(bytes, "os_write_err: bytes is null");
 #if defined(OS_LINUX)
     write(STDERR_FILENO, bytes, (u32)length);
 #elif defined(OS_WINDOWS)
@@ -728,7 +741,7 @@ void os_write_err(const u8 *bytes, u64 length)
 
 Bytes os_read_input(u8 *buffer, u64 max_length)
 {
-    assert_not_null(buffer, "os_read_input: buffer is NULL");
+    assert_not_null(buffer, "os_read_input: buffer is null");
 
 #if defined(OS_LINUX)
     i64 len = read(STDIN_FILENO, buffer, (u32)max_length);
@@ -966,7 +979,7 @@ static void _append_specifier(StringBuilder *sb, char *spec, va_list *list)
 
 String _fmt(const char *format, va_list *args)
 {
-    assert_not_null(format, "_fmt: format is NULL");
+    assert_not_null(format, "_fmt: format is null");
 
     StringBuilder sb = str_builder_new(get_temporary_allocator());
     String fmt_s = _STRING((char *)format);
@@ -1695,15 +1708,15 @@ void free_dir(Dir *dir)
     dir->err = true;
 }
 
-// :sparselist
+// :list
 
-SparseList sparse_list_new(u64 item_size, u64 length, Allocator a)
+List list_new(u64 item_size, u64 length, Allocator a)
 {
     void *ptr = alloc(a, item_size * length);
     if (ptr == NULL)
         return ERROR_LIST;
 
-    return (SparseList){
+    return (List){
         .a = a,
         .cap = length,
         .mem = ptr,
@@ -1713,10 +1726,10 @@ SparseList sparse_list_new(u64 item_size, u64 length, Allocator a)
     };
 }
 
-void sparse_list_append(SparseList *list, const void *item)
+void list_append(List *list, const void *item)
 {
-    assert_not_null(list, "sparse_list_append: list is null");
-    assert_not_null(list, "sparse_list_append: item is null");
+    assert_not_null(list, "list_append: list is null");
+    assert_not_null(item, "list_append: item is null");
 
     if (list->err)
         return;
@@ -1724,7 +1737,8 @@ void sparse_list_append(SparseList *list, const void *item)
     if (list->size == list->cap)
     {
         // Reallocate internal array
-        void *ptr = alloc_realloc(list->a, list->mem, list->cap * 2 * list->item_size);
+        u64 new_size = list->cap * 2 * list->item_size;
+        void *ptr = alloc_realloc(list->a, list->mem, new_size);
         if (ptr == NULL)
             return;
 
@@ -1737,10 +1751,25 @@ void sparse_list_append(SparseList *list, const void *item)
     list->size++;
 }
 
-void sparse_list_put(SparseList *list, u64 index, const void *item)
+void list_remove(List *list, u64 index)
 {
-    assert_not_null(list, "sparse_list_put: list is null");
-    assert_not_null(item, "sparse_list_put: item is null");
+    assert_not_null(list, "list_remove: list is null");
+
+    if (list->err || index >= list->size)
+        return;
+
+    u8 *source = (u8 *)list->mem + ((index+1) * list->item_size);
+    u8 *dest = source + list->item_size;
+    u64 size = (list->size - index - 1) * list->item_size;
+    move_memory(dest, source, size);
+
+    list->size--;
+}
+
+void list_put(List *list, u64 index, const void *item)
+{
+    assert_not_null(list, "list_put: list is null");
+    assert_not_null(list, "list_put: item is null");
 
     // Can put at last index, would be same as append
     if (list->err || index > list->size || index >= list->cap)
@@ -1750,14 +1779,47 @@ void sparse_list_put(SparseList *list, u64 index, const void *item)
     copy_memory(dest, item, list->item_size);
 }
 
-void *sparse_list_get(SparseList *list, u64 index)
+void *list_get(List *list, u64 index)
 {
-    assert_not_null(list, "sparse_list_get: list is null");
+    assert_not_null(list, "list_get: list is null");
 
     if (list->err || index >= list->size)
         return NULL;
 
     return (u8 *)list->mem + (index * list->item_size);
+}
+
+void list_clear(List *list)
+{
+    assert_not_null(list, "list_clear: list is null");
+    list->size = 0;
+}
+
+// :sparselist
+
+SparseList sparse_list_new(u64 item_size, u64 length, Allocator a)
+{
+    return list_new(item_size, length, a);
+}
+
+void sparse_list_append(SparseList *list, const void *item)
+{
+    assert_not_null(list, "sparse_list_append: list is null");
+    assert_not_null(list, "sparse_list_append: item is null");
+    list_append(list, item);
+}
+
+void sparse_list_put(SparseList *list, u64 index, const void *item)
+{
+    assert_not_null(list, "sparse_list_put: list is null");
+    assert_not_null(item, "sparse_list_put: item is null");
+    list_put(list, index, item);
+}
+
+void *sparse_list_get(SparseList *list, u64 index)
+{
+    assert_not_null(list, "sparse_list_get: list is null");
+    return list_get(list, index);
 }
 
 void sparse_list_remove(SparseList *list, u64 index)

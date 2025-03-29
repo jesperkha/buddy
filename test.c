@@ -272,6 +272,37 @@ bool test_list(void)
     return true;
 }
 
+bool test_memfuncs(void)
+{
+#define SIZE 64
+
+    test("copy_memory")
+    {
+        int arr1[SIZE] = {1, 2, 3, 4, 5};
+        int arr2[SIZE] = {0, 0, 0, 0, 0};
+        copy_memory(arr2, arr1, 5 * sizeof(int));
+
+        for (int i = 0; i < 5; i++)
+            assert(arr2[i] == i+1, "Expected equal");
+    }
+
+    test("move_memory")
+    {
+
+    }
+
+    test("zero_memory")
+    {
+        int arr[SIZE] = {1, 2, 3, 4};
+        zero_memory(arr, SIZE);
+
+        for (int i = 0; i < SIZE; i++)
+            assert(arr[i] == 0, "Expected zero");
+    }
+
+    return true;
+}
+
 void run_tests(void)
 {
     test_allocation();
@@ -280,6 +311,7 @@ void run_tests(void)
     test_fmt();
     test_list();
     test_path();
+    test_memfuncs();
 }
 
 int main(void)
