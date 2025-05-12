@@ -407,16 +407,22 @@ String bytes_to_str(Bytes b)
     };
 }
 
-void free_string(String s, Allocator a)
+void free_string(String *s, Allocator a)
 {
-    if (!s.err)
-        alloc_free(a, s.s);
+    if (s->err)
+        return;
+
+    alloc_free(a, s->s);
+    s->err = true;
 }
 
-void free_bytes(Bytes b, Allocator a)
+void free_bytes(Bytes *b, Allocator a)
 {
-    if (!b.err)
-        alloc_free(a, b.bytes);
+    if (b->err)
+        return;
+
+    alloc_free(a, b->bytes);
+    b->err = true;
 }
 
 String str_concat(Allocator a, String s1, String s2)
@@ -1702,7 +1708,7 @@ void free_dir(Dir *dir)
         return;
 
     for (u64 i = 0; i < dir->num_entries; i++)
-        free_string(dir->entries[i].name, dir->a);
+        free_string(&dir->entries[i].name, dir->a);
 
     alloc_free(dir->a, dir->entries);
     dir->err = true;
@@ -1793,6 +1799,15 @@ void list_clear(List *list)
 {
     assert_not_null(list, "list_clear: list is null");
     list->size = 0;
+}
+
+void free_list(List *list)
+{
+    if (list->err)
+        return;
+
+    alloc_free(list->a, list->mem);
+    list->err = true;
 }
 
 // :sparselist

@@ -165,10 +165,10 @@ typedef struct Bytes
 
 #define ERROR_BYTES ((Bytes){.err = true, .length = 0, .bytes = NULL})
 
-// Free string allocated with given allocator.
-void free_string(String s, Allocator a);
+// Free string allocated with given allocator. Sets err to true.
+void free_string(String *s, Allocator a);
 // Free byte array allocated with given allocator.
-void free_bytes(Bytes b, Allocator a);
+void free_bytes(Bytes *b, Allocator a);
 
 // Convert byte array to string. Keeps original pointer.
 String bytes_to_str(Bytes bytes);
@@ -477,7 +477,7 @@ typedef List SparseList; // Unordered list with fast remove
 // Returns ERROR_LIST if allocation fails.
 List list_new(u64 item_size, u64 length, Allocator a);
 // Appends item to end of list. Panics if list or item is null.
-void list_append(SparseList *list, const void *item);
+void list_append(List *list, const void *item);
 // Puts item at index. Must be within list length.
 void list_put(List *list, u64 index, const void *item);
 // Get a pointer to the item at index. Returns NULL if index is out of bounds.
@@ -486,6 +486,8 @@ void *list_get(List *list, u64 index);
 void list_remove(List *list, u64 index);
 // Resets list back to length 0. Does not resize the internal list memory.
 void list_clear(List *list);
+// Free internal list memory, setting err to true.
+void free_list(List *list);
 
 // Create new sparse list with allocator and intial size. Item size is in
 // bytes. Returns ERROR_LIST if allocation fails.
