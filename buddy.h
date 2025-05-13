@@ -124,6 +124,7 @@ void temp_restore_mark(u64 id);
 // everything allocated to the arena all at once.
 typedef struct Arena
 {
+    Allocator a;
     u8 *mem;
     u64 size;
     u64 pos;
@@ -131,8 +132,8 @@ typedef struct Arena
 
 // Allocates an arena with the given max size. Returns NULL on allocation fail.
 Arena *arena_new(Allocator a, u64 size);
-// Free arena allocated with given allocator.
-void free_arena(Arena *arena, Allocator a);
+// Free arena and its contents.
+void free_arena(Arena *arena);
 // Allocates a region in the arena. Returns NULL if arena is full.
 void *arena_alloc(Arena *a, u64 size);
 // Same as `arena_alloc`, but zeroes out memory as well.

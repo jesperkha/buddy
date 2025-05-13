@@ -229,6 +229,7 @@ Arena *arena_new(Allocator a, u64 size)
     arena->mem = (u8 *)arena + sizeof(Arena);
     arena->pos = 0;
     arena->size = size;
+    arena->a = a;
     return arena;
 }
 
@@ -321,10 +322,10 @@ Allocator get_arena_allocator(Arena *a)
     return al;
 }
 
-void free_arena(Arena *arena, Allocator a)
+void free_arena(Arena *arena)
 {
     assert_not_null(arena, "free_arena: arena is null");
-    alloc_free(a, arena); // Arena is inline
+    alloc_free(arena->a, arena); // Arena is inline
 }
 
 // :heap allocator

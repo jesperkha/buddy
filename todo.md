@@ -6,6 +6,8 @@
 ### Bugs
 
 - file_open fails if file is created because file_get_info cannot read from non-existing file (windows)
+- does not work with c99 (compile to see errors)
+- should append comment header when generating header-only to ref to github etc
 
 ### "Modules"
 
