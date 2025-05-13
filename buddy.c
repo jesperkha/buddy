@@ -218,6 +218,111 @@ void temp_restore_mark(u64 id)
     _temp_alloc_head = _temp_alloc_buffer + id;
 }
 
+// :pool
+
+#define POOL_BLOCK_SIGNATURE (0xDAEDDE0AFC1FDE97ull)
+
+static void *pool_allocator_proc(Allocator a, AllocatorMessage msg, u64 size, void *old_ptr)
+{
+    assert_not_null(a.data, "pool data is null");
+    _pool *pool = (_pool*)a.data;
+    const int hdr_size = sizeof(BlockHeader);
+
+    if (pool->size + size + hdr_size > pool->cap)
+    {
+        pool = alloc_realloc(pool->a, pool, pool->cap * 2);
+        assert_not_null(pool, "pool failed to realloc");
+    }
+
+    switch (msg)
+    {
+        case ALLOCATOR_MSG_ALLOC:
+        {
+            void *ptr = pool->mem + pool->size;
+            pool->size += size + hdr_size;
+
+            BlockHeader h = {
+                .signature = POOL_BLOCK_SIGNATURE,
+                .size = size,
+            };
+
+            copy_memory(ptr, &h, hdr_size);
+            return (u8*)ptr + hdr_size;
+        }
+
+        case ALLOCATOR_MSG_ZERO_ALLOC:
+        {
+            void *ptr = alloc(a, size);
+            if (ptr == NULL)
+                return ptr;
+
+            zero_memory(ptr, size);
+            return ptr;
+        }
+
+        case ALLOCATOR_MSG_REALLOC:
+        {
+            if (old_ptr == NULL)
+                return NULL;
+
+            BlockHeader *block = _get_block_header(old_ptr);
+            if (block->signature != POOL_BLOCK_SIGNATURE)
+                return NULL;
+
+            // Pool may realloc internally on next alloc() call so we need to
+            // store the block values here to not access freed memory.
+            u64 oldsize = block->size;
+
+            if (size < oldsize)
+                panic("pool: cannot realloc to smaller size");
+
+            void *ptr = alloc(a, size);
+            if (ptr == NULL)
+                return ptr;
+
+            copy_memory(ptr, old_ptr, oldsize);
+            return ptr;
+        }
+
+        case ALLOCATOR_MSG_FREE:
+            break; // Not supported
+    }
+
+    panic("pool_allocator_proc: got unknown allocator message");
+    return NULL;
+}
+
+Pool get_pool_allocator(Allocator a, u64 init_size)
+{
+    if (init_size < sizeof(_pool))
+        panic("cannot init pool smaller than header");
+
+    void *mem = alloc(a, init_size);
+
+    _pool p = {
+        .a = a,
+        .cap = init_size,
+        .size = 0,
+        .mem = (u8*)mem + sizeof(_pool),
+    };
+
+    copy_memory(mem, &p, sizeof(_pool));
+
+    Allocator ally = {
+        .data = mem,
+        .proc = pool_allocator_proc,
+    };
+
+    return ally;
+}
+
+void free_pool(Pool *p)
+{
+    _pool *dat = (_pool*)p->data;
+    alloc_free(dat->a, dat->mem);
+    p->data = NULL;
+}
+
 // :arena
 
 Arena *arena_new(Allocator a, u64 size)

@@ -117,6 +117,27 @@ u64 temp_mark(void);
 // Restores to mark ID. Any memory allocated after the mark will be discarded.
 void temp_restore_mark(u64 id);
 
+// Pool allocator
+
+// Internal use only (for Allocator data segment).
+typedef struct _pool
+{
+    Allocator a;
+    u64 size;
+    u64 cap;
+    u8 *mem;
+} _pool;
+
+// A pool allocator is similar to an Arena. It lets you allocatre to a pool
+// and free all the memory at once. It differs from Arena in that the internal
+// memory grows when needed, and that it just has an Allocator interface.
+typedef Allocator Pool;
+
+// Get new pool allocator using a.
+Pool get_pool_allocator(Allocator a, u64 init_size);
+// Free pool allocator.
+void free_pool(Pool *p);
+
 // Arena
 
 // Arenas a chunks of memory you can allocate to and free all at once. They

@@ -53,6 +53,21 @@ bool test_allocation(void)
        assert(p == NULL, "Expected NULL");
     }
 
+    test("pool allocator")
+    {
+        Pool pool = get_pool_allocator(get_temporary_allocator(), sizeof(_pool) + 128);
+
+        i32 *numbers = alloc(pool, 128);
+        for (int i = 0; i < 10; i++)
+            numbers[i] = i;
+        
+        i32 *new_numbers = alloc_realloc(pool, numbers, 256);
+        for (int i = 0; i < 10; i++)
+            assert(new_numbers[i] == i, "Expected equal");
+
+        free_pool(&pool);
+    }
+
     test("temp memory marking")
     {
         reset_temp_memory();
