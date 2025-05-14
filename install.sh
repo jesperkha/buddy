@@ -2,7 +2,7 @@
 set -euo pipefail
 
 BASE_URL="https://raw.githubusercontent.com/jesperkha/buddy/main"
-OUTPUT="foo.h"
+OUTPUT="buddy.h"
 
 rm -f "$OUTPUT"
 
