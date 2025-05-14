@@ -4,13 +4,13 @@ Single-header modern C utility library
 
 ## Use
 
-### Generate header
+Copy and run the following command. It will fetch and run the install script which creates the `buddy.h` file in the current directory.
 
-1. Clone the project
-2. Run `make build`
-3. Copy the generated header `/dist/buddy.h` into your project
+```sh
+curl -fsSL https://raw.githubusercontent.com/jesperkha/buddy/refs/heads/main/install.sh | bash
+```
 
-### Use in project
+Then prepend the implementation definition before including the header in your main file.
 
 ```c
 #define BUDDY_IMPLEMENTATION // Only do this is main
