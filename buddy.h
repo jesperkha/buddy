@@ -1,3 +1,25 @@
+/*
+ * buddy header-only library
+ *
+ * Source at github.com/jesperkha/buddy
+ *
+ * This is a header-only library with basic utils for memory, os functions,
+ * data structures, and more. It is designed to work on both windows and linux.
+ *
+ * Example usage:
+ *
+ *      // Define implementation macro before including (only once)
+ *      #define BUDDY_IMPLEMENTATION
+ *      #include "buddy.h"
+ *
+ *      int main(void)
+ *      {
+ *          out("Hello World!");
+ *          return 0;
+ *      }
+ *
+*/
+
 #pragma once
 
 #if defined(__linux__)
