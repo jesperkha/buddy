@@ -319,7 +319,7 @@ Pool get_pool_allocator(Allocator a, u64 init_size)
 void free_pool(Pool *p)
 {
     _pool *dat = (_pool*)p->data;
-    alloc_free(dat->a, dat->mem);
+    alloc_free(dat->a, dat);
     p->data = NULL;
 }
 
