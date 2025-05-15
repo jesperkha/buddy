@@ -11,6 +11,7 @@
 #include <stdarg.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <malloc.h> // Temporary for heap alloc
 
 #elif defined(OS_WINDOWS)
@@ -1739,11 +1740,15 @@ Dir dir_read_s(String path, Allocator a)
         if (name.err)
             return ERROR_DIR;
 
+        struct stat st;
+        if (stat(entry->d_name, &st) < 0)
+            continue;
+
         DirEntry e = {
             .name = name,
-            .is_dir = entry->d_type == DT_DIR,
-            .is_file = entry->d_type == DT_REG,
-            .is_symlink = entry->d_type == DT_LNK,
+            .is_dir = S_ISDIR(st.st_mode),
+            .is_file = S_ISREG(st.st_mode),
+            .is_symlink = S_ISLNK(st.st_mode),
         };
 
         e.is_current_dir = e.is_dir && cstr_equal(e.name.s, ".");
