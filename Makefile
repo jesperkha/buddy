@@ -1,10 +1,9 @@
 CC = clang
-FLAGS = -Wall -Wextra -Wpedantic -Werror -Wshadow -Wconversion
+FLAGS = -Wall -Wextra -Wpedantic -Werror -Wshadow -Wconversion -std=c99
 
 all:
 	mkdir -p bin
 	$(CC) $(FLAGS) buddy.c test.c -o bin/test
-	# clang -g -Wall -Wextra -Wpedantic -Werror -Wshadow -Wconversion -Wunreachable-code -fsanitize=undefined -fsanitize=address buddy.c test.c -o bin/test
 	./bin/test
 
 build:

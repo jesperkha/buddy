@@ -1379,7 +1379,7 @@ FileInfo file_get_info_s(String path)
     return (FileInfo){
         .size = (u64)s.st_size,
         .size_on_disk = (u64)(s.st_blksize * s.st_blocks),
-        .last_modified = (u64)s.st_mtim.tv_sec,
+        .last_modified = (u64)s.st_mtime,
     };
 
 #elif defined(OS_WINDOWS)
